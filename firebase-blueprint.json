@@ -1,0 +1,57 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The display name of the user"
+        },
+        "email": {
+          "type": "string",
+          "description": "The email of the user"
+        },
+        "hasSeenTutorial": {
+          "type": "boolean",
+          "description": "Whether the user has seen the initial tutorial"
+        },
+        "points": {
+          "type": "number",
+          "description": "Total points earned by the user"
+        },
+        "isPremium": {
+          "type": "boolean",
+          "description": "Whether the user has premium status"
+        },
+        "pointsLimit": {
+          "type": "number",
+          "description": "Total daily points limit"
+        },
+        "processedSessions": {
+          "type": "array",
+          "description": "Processed Stripe session IDs"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the account was created"
+        }
+      },
+      "required": [
+        "name",
+        "email",
+        "hasSeenTutorial",
+        "points",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile collection"
+    }
+  }
+}

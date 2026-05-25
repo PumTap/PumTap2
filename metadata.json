@@ -1,0 +1,6 @@
+{
+  "name": "Pumtap",
+  "description": "Una plataforma de juegos educativos y creativos para niños con sistema de puntos y retos mágicos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

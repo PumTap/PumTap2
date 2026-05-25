@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Default Deny Catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Validation Blueprints ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'email', 'hasSeenTutorial', 'points', 'isPremium', 'createdAt', 'pointsLimit']) &&
+             (data.keys().size() == 7 || (data.keys().size() == 8 && data.keys().hasAll(['processedSessions']))) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.email is string && data.email.size() > 0 && data.email.size() <= 200 &&
+             data.hasSeenTutorial is bool &&
+             data.points is number && data.points >= 0 &&
+             data.isPremium is bool &&
+             data.pointsLimit is number && data.pointsLimit >= 2000 &&
+             data.createdAt is timestamp &&
+             (!data.keys().hasAny(['processedSessions']) || (data.processedSessions is list && data.processedSessions.size() <= 100));
+    }
+
+    // --- User Rules ---
+    match /users/{userId} {
+      allow get: if isValidId(userId);
+      
+      allow create: if isValidId(userId) && 
+                      isValidUser(incoming()) && 
+                      incoming().createdAt == request.time &&
+                      incoming().points == 0 &&
+                      incoming().hasSeenTutorial == false &&
+                      incoming().isPremium == false &&
+                      incoming().pointsLimit == 2000;
+
+      allow update: if isValidId(userId) &&
+                      (
+                        // Action: Update points
+                        (incoming().diff(existing()).affectedKeys().hasOnly(['points']) && 
+                         incoming().points is number && incoming().points >= 0) ||
+                        // Action: Mark tutorial as seen
+                        (incoming().diff(existing()).affectedKeys().hasOnly(['hasSeenTutorial']) && 
+                         incoming().hasSeenTutorial == true) ||
+                        // Action: Buy Premium
+                        (incoming().diff(existing()).affectedKeys().hasOnly(['isPremium']) && 
+                         incoming().isPremium == true) ||
+                        // Action: Buy Points Limit Extension
+                        (incoming().diff(existing()).affectedKeys().hasOnly(['pointsLimit']) && 
+                         incoming().pointsLimit is number && incoming().pointsLimit >= 2000) ||
+                        // Action: Purchase session sync & update (Stripe payment integration)
+                        (incoming().diff(existing()).affectedKeys().hasOnly(['isPremium', 'pointsLimit', 'processedSessions']) &&
+                         (!incoming().keys().hasAny(['isPremium']) || incoming().isPremium is bool) &&
+                         (!incoming().keys().hasAny(['pointsLimit']) || (incoming().pointsLimit is number && incoming().pointsLimit >= 2000)) &&
+                         (!incoming().keys().hasAny(['processedSessions']) || (incoming().processedSessions is list && incoming().processedSessions.size() <= 100)))
+                      );
+    }
+  }
+}

@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Fredoka:wght@300..700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Fredoka", ui-sans-serif, system-ui, sans-serif;
+  --font-comic: "Patrick Hand", cursive;
+
+  @keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+}
+
+body {
+  @apply bg-zinc-950 text-white overflow-hidden;
+}
+
+.magic-glow {
+  box-shadow: 0 0 15px currentColor;
+}
+
+.btn-bubble {
+  @apply rounded-full transition-transform active:scale-95 cursor-pointer shadow-lg hover:brightness-110;
+}
