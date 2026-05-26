@@ -24,7 +24,8 @@ import {
   Zap,
   Clock,
   Loader2,
-  Star
+  Star,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import MagicBoard from './components/MagicBoard';
@@ -80,6 +81,7 @@ export default function App() {
   const [stripeWarning, setStripeWarning] = useState<{ type: 'premium' | 'extension'; message: string } | null>(null);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [checkoutType, setCheckoutType] = useState<'premium' | 'extension' | null>(null);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -856,7 +858,7 @@ export default function App() {
                       </div>
                     ) : (
                       <div 
-                        onClick={handleBuyPremium}
+                        onClick={() => setShowPremiumModal(true)}
                         className="cursor-pointer bg-zinc-900/40 hover:bg-zinc-900/60 backdrop-blur-md p-4 rounded-[2rem] border-2 border-dashed border-zinc-800 flex items-center justify-between gap-6 max-w-sm w-full shadow-lg transition-all hover:scale-[1.02]"
                       >
                         <div className="flex items-center gap-3 text-left">
@@ -1013,6 +1015,97 @@ export default function App() {
               >
                 Volver a la aplicación
               </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Premium Explanation & Purchase Dialog Modal */}
+      {showPremiumModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4 z-[9999] text-center font-sans">
+          <motion.div 
+            initial={{ scale: 0.9, y: 30, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            className="w-full max-w-lg bg-zinc-900 border-2 border-yellow-500/20 p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl flex flex-col items-center gap-6 text-center relative overflow-hidden text-white"
+          >
+            {/* Background glowing effects */}
+            <div className="absolute -top-24 -left-24 w-48 h-48 bg-yellow-500/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+
+            <button 
+              onClick={() => setShowPremiumModal(false)}
+              className="absolute top-4 right-4 text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-all"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-amber-500 text-zinc-950 rounded-2xl flex items-center justify-center shadow-lg shadow-yellow-500/10">
+              <Sparkles size={32} />
+            </div>
+
+            <div>
+              <h3 className="text-2xl sm:text-3xl font-black text-white font-comic tracking-tight uppercase">
+                ¡PumTap Premium! 👶🌟
+              </h3>
+              <p className="text-zinc-400 text-sm sm:text-base mt-2 font-comic max-w-md mx-auto leading-relaxed">
+                Desbloquea la experiencia completa y dale a los más pequeños un entorno seguro, divertido y libre de interrupciones.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-4 w-full text-left mt-2">
+              {/* Option 1: Premium Infinitos */}
+              <div className="bg-zinc-850 border border-yellow-500/30 p-4 sm:p-5 rounded-2xl shadow-xl">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex-1">
+                    <span className="bg-yellow-500/20 text-yellow-500 text-[10px] sm:text-xs px-2.5 py-1 rounded-md uppercase font-black tracking-wider leading-none">PAGO ÚNICO • PARA SIEMPRE ⭐</span>
+                    <h4 className="text-base sm:text-lg font-black text-white mt-1.5 font-comic">Pumtap Premium - Puntos Infinitos</h4>
+                    <p className="text-zinc-400 text-xs sm:text-sm mt-1 leading-relaxed">
+                      Desbloquea el **Modo Infantil** permanentemente para jugar sin esperas, sin límites diarios y con diversión libre de pausas.
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <span className="text-yellow-400 font-comic font-black text-xl sm:text-2xl">2,99€</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPremiumModal(false);
+                    handleBuyPremium();
+                  }}
+                  className="w-full mt-3 py-2.5 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 text-zinc-950 rounded-xl font-black text-sm uppercase flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-md font-comic cursor-pointer"
+                >
+                  <Sparkles size={16} /> Obtener Acceso Infinito
+                </button>
+              </div>
+
+              {/* Option 2: 2000 points extension */}
+              <div className="bg-zinc-850 border border-zinc-800 p-4 sm:p-5 rounded-2xl shadow-md">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex-1">
+                    <span className="bg-zinc-850 text-zinc-400 text-[10px] sm:text-xs px-2.5 py-1 rounded-md border border-zinc-700 uppercase font-black tracking-wider leading-none">Ampliación de Límite</span>
+                    <h4 className="text-base sm:text-lg font-bold text-white mt-1.5 font-comic">Ampliación +2.000 Pts (Pumtap)</h4>
+                    <p className="text-zinc-400 text-xs sm:text-sm mt-1 leading-relaxed">
+                      Añade 2.000 puntos extras a tu límite para seguir acumulando ranking en los retos interactivos de hoy.
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <span className="text-zinc-300 font-comic font-semibold text-lg sm:text-xl">1,00€</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPremiumModal(false);
+                    handleBuyLimitExtension();
+                  }}
+                  className="w-full mt-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700/80 rounded-xl font-bold text-sm uppercase flex items-center justify-center gap-2 active:scale-[0.98] transition-all font-comic cursor-pointer"
+                >
+                  <CreditCard size={16} /> Ampliar +2.000 puntos
+                </button>
+              </div>
+            </div>
+
+            <div className="text-[11px] text-zinc-500 font-comic mt-1 font-semibold">
+              Tu compra ayuda a seguir mejorando PumTap. ¡Mil gracias por tu apoyo! ❤️
             </div>
           </motion.div>
         </div>

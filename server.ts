@@ -223,7 +223,10 @@ async function startServer() {
     }
     try {
       await sendPasswordResetEmail(auth, email);
-      res.json({ success: true, message: 'Se ha enviado un correo para restablecer tu contraseña.' });
+      res.json({ 
+        success: true, 
+        message: '¡Enlace enviado con éxito! ⚠️ IMPORTANTE: Debido a las políticas de seguridad de Gmail y otros proveedores, estos correos de recuperación de Firebase de prueba suelen ser filtrados de inmediato. Por favor, REVISA TU CARPETA DE SPAM (Correo no deseado) y busca un remitente como "noreply@gen-lang-client-..." o similar. Si has desplegado en pumtap.com con tu propio Firebase, recuerda configurar y autenticar tu dominio personalizado en la sección de plantillas de autenticación en la Consola de Firebase para evitar este bloqueo.' 
+      });
     } catch (error: any) {
       console.error('Password reset error:', error);
       let userMessage = 'Error al enviar el correo de restablecimiento';
@@ -351,10 +354,10 @@ async function startServer() {
       const stripe = getStripe();
       
       const title = type === 'premium' 
-        ? 'Membresía Premium Infinitos - Magic Play' 
-        : 'Extensión de Límite (2,000 puntos) - Magic Play';
+        ? 'Pumtap Premium - Puntos Infinitos' 
+        : 'Ampliación +2.000 Puntos (Pumtap)';
         
-      const amount = type === 'premium' ? 999 : 199; // 9.99 EUR or 1.99 EUR
+      const amount = type === 'premium' ? 299 : 100; // 2.99 EUR or 1.00 EUR
 
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
@@ -365,7 +368,7 @@ async function startServer() {
               product_data: {
                 name: title,
                 description: type === 'premium' 
-                  ? 'Acceso ilimitado a todos los juegos, sin límites de puntos diarios.' 
+                  ? 'Acceso ilimitado a todos los juegos, sin límites de puntos diarios. Desbloquea el Modo Infantil.' 
                   : 'Suma 2,000 puntos adicionales al límite diario de juego de tu cuenta.',
               },
               unit_amount: amount,

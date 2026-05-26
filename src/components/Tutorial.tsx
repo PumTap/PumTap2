@@ -17,7 +17,7 @@ interface TutorialProps {
 
 const STEPS = [
   {
-    title: "¡Bienvenidos a Magic Play!",
+    title: "¡Bienvenidos a PumTap!",
     description: "Un mundo de diversión diseñado para aprender jugando.",
     icon: Sparkles,
     color: "from-blue-500 to-cyan-500",

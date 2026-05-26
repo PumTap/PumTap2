@@ -45,13 +45,14 @@ function ButterflyIcon({ size = 24, ...props }: { size?: number } & React.SVGPro
       strokeLinejoin="round"
       {...props}
     >
-      <path d="M12 4v16" />
-      <path d="M12 4c-5 0-8 3-8 8s3 8 8 8" />
-      <path d="M12 4c5 0 8 3 8 8s-3 8-8 8" />
-      <path d="M12 12c-4-1-6-4-6-7" />
-      <path d="M12 12c4-1 6-4 6-7" />
-      <path d="M12 12c-4 1-6 4-6 7" />
-      <path d="M12 12c4 1 6 4 6 7" />
+      <circle cx="12" cy="7" r="1.5" />
+      <rect x="11.25" y="8.5" width="1.5" height="9" rx="0.75" fill="currentColor" />
+      <path d="M12 10C11.5 6, 6 5, 6 9C6 12.5, 9.5 13.5, 12 11.5" />
+      <path d="M12 11.5C10 13.5, 7.5 14, 7.5 17C7.5 19.5, 11 19, 12 14.5" />
+      <path d="M12 10C12.5 6, 18 5, 18 9C18 12.5, 14.5 13.5, 12 11.5" />
+      <path d="M12 11.5C14 13.5, 16.5 14, 16.5 17C16.5 19.5, 13 19, 12 14.5" />
+      <path d="M10.5 5.5c-1-1.5-2-1.5-2.5-.5" />
+      <path d="M13.5 5.5c1-1.5 2-1.5 2.5-.5" />
     </svg>
   );
 }
@@ -131,10 +132,63 @@ function CursorFollower({ color, isEraser = false }: { color: string; isEraser?:
   );
 }
 
+// Helper to generate inline SVG content representing identical stamps to the sidebar icons
+const getStampSvg = (id: string, color: string) => {
+  let content = '';
+  switch (id) {
+    case 'sun':
+      content = `<circle cx="12" cy="12" r="4" fill="${color}33"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>`;
+      break;
+    case 'house':
+      content = `<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="${color}22"/><polyline points="9 22 9 12 15 12 15 22"/>`;
+      break;
+    case 'mountain':
+      content = `<path d="m8 3 4 8 5-5 5 15H2L8 3z" fill="${color}22"/>`;
+      break;
+    case 'cloud':
+      content = `<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" fill="${color}22"/>`;
+      break;
+    case 'tree':
+      content = `<path d="m12 2 10 10H17l5 5H2l5-5H3L12 2z" fill="${color}22"/><path d="M12 17v5"/>`;
+      break;
+    case 'flower':
+      content = `<circle cx="12" cy="12" r="3" fill="${color}33"/><path d="M12 7.5a4.5 4.5 0 1 1 4.5 4.5M12 7.5A4.5 4.5 0 1 0 7.5 12M12 7.5V12m0 0a4.5 4.5 0 1 1-4.5 4.5M12 12a4.5 4.5 0 1 1 4.5 4.5M12 12v4.5"/>`;
+      break;
+    case 'star':
+      content = `<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="${color}33"/>`;
+      break;
+    case 'moon':
+      content = `<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" fill="${color}22"/>`;
+      break;
+    case 'heart':
+      content = `<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" fill="${color}33"/>`;
+      break;
+    case 'butterfly':
+      content = `<circle cx="12" cy="7" r="1.5" fill="${color}" /><rect x="11.25" y="8.5" width="1.5" height="9" rx="0.75" fill="${color}" /><path d="M12 10C11.5 6, 6 5, 6 9C6 12.5, 9.5 13.5, 12 11.5" fill="${color}22" /><path d="M12 11.5C10 13.5, 7.5 14, 7.5 17C7.5 19.5, 11 19, 12 14.5" fill="${color}22" /><path d="M12 10C12.5 6, 18 5, 18 9C18 12.5, 14.5 13.5, 12 11.5" fill="${color}22" /><path d="M12 11.5C14 13.5, 16.5 14, 16.5 17C16.5 19.5, 13 19, 12 14.5" fill="${color}22" /><path d="M10.5 5.5c-1-1.5-2-1.5-2.5-.5" /><path d="M13.5 5.5c1-1.5 2-1.5 2.5-.5" />`;
+      break;
+    case 'bolt':
+      content = `<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="${color}33"/>`;
+      break;
+    case 'fish':
+      content = `<circle cx="15" cy="9.5" r="1.5" fill="${color}"/><path d="M11 9c-1 1.5-1 3.5 0 5" /><path d="M18 12.5c-.8.8-2 .8-2.8 0" /><path d="M20 12c0-4-4-7-10-7-4.5 0-6 3-6 7s1.5 7 6 7c6 0 10-3 10-7Z" fill="${color}22"/><path d="M4 12 L 0 8.5 L 1.5 12 L 0 15.5 Z" fill="${color}33" /><path d="M9 5c1-2 3-2 4 0" fill="${color}33" /><path d="M9 19c1 2 3 2 4 0" fill="${color}33" />`;
+      break;
+    case 'car':
+      content = `<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" fill="${color}22"/><circle cx="7" cy="17" r="2" fill="${color}44"/><circle cx="17" cy="17" r="2" fill="${color}44"/><path d="M9 17h6"/>`;
+      break;
+    case 'balloon':
+      content = `<circle cx="12" cy="10" r="8" fill="${color}33"/><path d="M12 18c-1 1.5-2 3.5-1 5" />`;
+      break;
+    case 'smiley':
+      content = `<circle cx="12" cy="12" r="10" fill="${color}22"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>`;
+      break;
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${content}</svg>`;
+};
+
 export default function MagicBoard() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentColor, setCurrentColor] = useState('#ffffff');
-  const [recentColors, setRecentColors] = useState<string[]>([]);
+  const [customColor, setCustomColor] = useState<string | null>(null);
   const colorInputRef = useRef<HTMLInputElement>(null);
   const [currentSize, setCurrentSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [tool, setTool] = useState<'brush' | 'stamp' | 'eraser'>('brush');
@@ -149,6 +203,54 @@ export default function MagicBoard() {
   const isPointerDown = useRef(false);
   const lastPos = useRef<{ x: number; y: number } | null>(null);
   const [hue, setHue] = useState(0);
+  const [eraserParticles, setEraserParticles] = useState<any[]>([]);
+
+  const spawnEraserParticles = (x: number, y: number) => {
+    const count = 3;
+    const newParticles = [];
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 0.5 + Math.random() * 2.5;
+      newParticles.push({
+        id: Math.random() + Date.now() + i,
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        size: 3 + Math.random() * 5,
+        color: Math.random() > 0.4 ? '#ff79c6' : '#fbcfe8',
+        opacity: 1,
+      });
+    }
+    setEraserParticles(prev => [...prev, ...newParticles].slice(-40));
+  };
+
+  useEffect(() => {
+    if (eraserParticles.length === 0) return;
+    let active = true;
+    let frameId: number;
+    const update = () => {
+      if (!active) return;
+      setEraserParticles(prev => {
+        if (prev.length === 0) return prev;
+        return prev
+          .map(p => ({
+            ...p,
+            x: p.x + p.vx,
+            y: p.y + p.vy,
+            vy: p.vy + 0.08, // gravity
+            opacity: p.opacity - 0.04,
+          }))
+          .filter(p => p.opacity > 0);
+      });
+      frameId = requestAnimationFrame(update);
+    };
+    frameId = requestAnimationFrame(update);
+    return () => {
+      active = false;
+      cancelAnimationFrame(frameId);
+    };
+  }, [eraserParticles.length > 0]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -169,146 +271,17 @@ export default function MagicBoard() {
   }, []);
 
   const drawStampOutline = (ctx: CanvasRenderingContext2D, x: number, y: number, type: string, size: number, color: string) => {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.shadowBlur = 5;
-    ctx.shadowColor = color;
-    
-    ctx.beginPath();
-    switch(type) {
-      case 'sun':
-        ctx.arc(x, y, size * 0.3, 0, Math.PI * 2);
-        for(let i=0; i<8; i++) {
-          const angle = (i * Math.PI * 2) / 8;
-          ctx.moveTo(x + Math.cos(angle) * size * 0.35, y + Math.sin(angle) * size * 0.35);
-          ctx.lineTo(x + Math.cos(angle) * size * 0.5, y + Math.sin(angle) * size * 0.5);
-        }
-        break;
-      case 'house':
-        ctx.rect(x - size * 0.3, y - size * 0.1, size * 0.6, size * 0.4);
-        ctx.moveTo(x - size * 0.35, y - size * 0.1);
-        ctx.lineTo(x, y - size * 0.4);
-        ctx.lineTo(x + size * 0.35, y - size * 0.1);
-        break;
-      case 'mountain':
-        ctx.moveTo(x - size * 0.5, y + size * 0.3);
-        ctx.lineTo(x - size * 0.1, y - size * 0.2);
-        ctx.lineTo(x + size * 0.1, y + size * 0.1);
-        ctx.lineTo(x + size * 0.3, y - size * 0.1);
-        ctx.lineTo(x + size * 0.5, y + size * 0.3);
-        ctx.moveTo(x - size * 0.2, y - size * 0.05);
-        ctx.lineTo(x - size * 0.1, y - size * 0.1);
-        ctx.lineTo(x, y - size * 0.05);
-        break;
-      case 'bolt':
-        ctx.moveTo(x + size * 0.1, y - size * 0.4);
-        ctx.lineTo(x, y + size * 0.05);
-        ctx.lineTo(x + size * 0.1, y + size * 0.05);
-        ctx.lineTo(x - size * 0.1, y + size * 0.4);
-        ctx.lineTo(x + size * 0.2, y - size * 0.05);
-        ctx.lineTo(x, y - size * 0.05);
-        ctx.closePath();
-        break;
-      case 'butterfly':
-        ctx.moveTo(x, y - size * 0.2);
-        ctx.bezierCurveTo(x - size * 0.05, y - size * 0.2, x - size * 0.05, y + size * 0.2, x, y + size * 0.2);
-        ctx.bezierCurveTo(x + size * 0.05, y + size * 0.2, x + size * 0.05, y - size * 0.2, x, y - size * 0.2);
-        ctx.moveTo(x + size * 0.02, y - size * 0.05);
-        ctx.bezierCurveTo(x + size * 0.5, y - size * 0.6, x + size * 0.7, y, x + size * 0.1, y + size * 0.05);
-        ctx.moveTo(x + size * 0.05, y + size * 0.05);
-        ctx.bezierCurveTo(x + size * 0.6, y + size * 0.5, x + size * 0.4, y + size * 0.6, x + size * 0.02, y + size * 0.1);
-        ctx.moveTo(x - size * 0.02, y - size * 0.05);
-        ctx.bezierCurveTo(x - size * 0.5, y - size * 0.6, x - size * 0.7, y, x - size * 0.1, y + size * 0.05);
-        ctx.moveTo(x - size * 0.05, y + size * 0.05);
-        ctx.bezierCurveTo(x - size * 0.6, y + size * 0.5, x - size * 0.4, y + size * 0.6, x - size * 0.02, y + size * 0.1);
-        ctx.moveTo(x, y - size * 0.2);
-        ctx.quadraticCurveTo(x - size * 0.2, y - size * 0.4, x - size * 0.15, y - size * 0.5);
-        ctx.moveTo(x, y - size * 0.2);
-        ctx.quadraticCurveTo(x + size * 0.2, y - size * 0.4, x + size * 0.15, y - size * 0.5);
-        break;
-      case 'heart':
-        const hSize = size * 0.4;
-        ctx.moveTo(x, y + hSize * 0.3);
-        ctx.bezierCurveTo(x - hSize, y - hSize, x - hSize * 1.5, y + hSize * 0.5, x, y + hSize);
-        ctx.bezierCurveTo(x + hSize * 1.5, y + hSize * 0.5, x + hSize, y - hSize, x, y + hSize * 0.3);
-        break;
-      case 'star':
-        for(let i=0; i<5; i++) {
-          const r1 = size * 0.5;
-          const r2 = size * 0.2;
-          const a1 = (i * Math.PI * 2) / 5 - Math.PI/2;
-          const a2 = a1 + Math.PI/5;
-          ctx.lineTo(x + Math.cos(a1) * r1, y + Math.sin(a1) * r1);
-          ctx.lineTo(x + Math.cos(a2) * r2, y + Math.sin(a2) * r2);
-        }
-        ctx.closePath();
-        break;
-      case 'moon':
-        ctx.arc(x, y, size * 0.4, 0.4, Math.PI * 1.6);
-        ctx.quadraticCurveTo(x + size * 0.1, y, x + size * 0.36, y + size * 0.15);
-        break;
-      case 'flower':
-        ctx.arc(x, y, size * 0.1, 0, Math.PI * 2);
-        for(let i=0; i<5; i++) {
-          const angle = (i * Math.PI * 2) / 5;
-          ctx.moveTo(x + Math.cos(angle) * size * 0.1, y + Math.sin(angle) * size * 0.1);
-          ctx.arc(x + Math.cos(angle) * size * 0.3, y + Math.sin(angle) * size * 0.3, size * 0.15, 0, Math.PI * 2);
-        }
-        break;
-      case 'cloud':
-        ctx.moveTo(x - size * 0.3, y);
-        ctx.arc(x - size * 0.2, y, size * 0.15, Math.PI, Math.PI * 2);
-        ctx.arc(x, y - size * 0.1, size * 0.2, Math.PI, Math.PI * 2);
-        ctx.arc(x + size * 0.2, y, size * 0.15, Math.PI, Math.PI * 2.2);
-        ctx.lineTo(x - size * 0.3, y);
-        break;
-      case 'tree':
-        ctx.moveTo(x, y - size * 0.4);
-        ctx.lineTo(x - size * 0.3, y);
-        ctx.lineTo(x + size * 0.3, y);
-        ctx.closePath();
-        ctx.rect(x - size * 0.05, y, size * 0.1, size * 0.2);
-        break;
-      case 'fish':
-        ctx.ellipse(x, y, size * 0.4, size * 0.25, 0, 0, Math.PI * 2);
-        ctx.moveTo(x - size * 0.4, y);
-        ctx.lineTo(x - size * 0.6, y - size * 0.2);
-        ctx.lineTo(x - size * 0.6, y + size * 0.2);
-        ctx.closePath();
-        break;
-      case 'car':
-        ctx.moveTo(x - size * 0.4, y + size * 0.1);
-        ctx.lineTo(x + size * 0.4, y + size * 0.1);
-        ctx.lineTo(x + size * 0.4, y - size * 0.1);
-        ctx.lineTo(x + size * 0.2, y - size * 0.1);
-        ctx.lineTo(x + size * 0.1, y - size * 0.3);
-        ctx.lineTo(x - size * 0.2, y - size * 0.3);
-        ctx.lineTo(x - size * 0.3, y - size * 0.1);
-        ctx.lineTo(x - size * 0.4, y - size * 0.1);
-        ctx.closePath();
-        ctx.moveTo(x - size * 0.2, y + size * 0.1);
-        ctx.arc(x - size * 0.2, y + size * 0.1, size * 0.1, 0, Math.PI * 2);
-        ctx.moveTo(x + size * 0.2, y + size * 0.1);
-        ctx.arc(x + size * 0.2, y + size * 0.1, size * 0.1, 0, Math.PI * 2);
-        break;
-      case 'balloon':
-        ctx.ellipse(x, y - size * 0.1, size * 0.3, size * 0.4, 0, 0, Math.PI * 2);
-        ctx.moveTo(x, y + size * 0.3);
-        ctx.bezierCurveTo(x + size * 0.1, y + size * 0.5, x - size * 0.1, y + size * 0.6, x, y + size * 0.8);
-        break;
-      case 'smiley':
-        ctx.arc(x, y, size * 0.4, 0, Math.PI * 2);
-        ctx.moveTo(x - size * 0.15, y - size * 0.1);
-        ctx.arc(x - size * 0.15, y - size * 0.1, size * 0.05, 0, Math.PI * 2);
-        ctx.moveTo(x + size * 0.15, y - size * 0.1);
-        ctx.arc(x + size * 0.15, y - size * 0.1, size * 0.05, 0, Math.PI * 2);
-        ctx.moveTo(x - size * 0.2, y + size * 0.1);
-        ctx.quadraticCurveTo(x, y + size * 0.3, x + size * 0.2, y + size * 0.1);
-        break;
-    }
-    ctx.stroke();
+    const svg = getStampSvg(type, color);
+    const dataUrl = `data:image/svg+xml;base64,${btoa(svg)}`;
+    const img = new Image();
+    img.onload = () => {
+      ctx.imageSmoothingEnabled = true;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = color;
+      ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
+      ctx.shadowBlur = 0;
+    };
+    img.src = dataUrl;
   };
 
   useEffect(() => {
@@ -316,8 +289,9 @@ export default function MagicBoard() {
     if (!canvas) return;
     const resize = () => {
       const data = canvas.toDataURL();
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const parent = canvas.parentElement;
+      canvas.width = parent ? parent.clientWidth : window.innerWidth;
+      canvas.height = parent ? parent.clientHeight : window.innerHeight;
       const ctx = canvas.getContext('2d');
       if (ctx) {
         const img = new Image();
@@ -445,18 +419,46 @@ export default function MagicBoard() {
   const handlePointerDown = (e: React.PointerEvent) => {
     isPointerDown.current = true;
     saveToHistory();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
     if (tool === 'stamp') {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
       const scale = STAMP_SIZES[currentSize].scale;
       const stampSize = 100 * scale;
       drawStampOutline(ctx, x, y, selectedStamp.id, stampSize, selectedStamp.color);
       playMagicSound(selectedStamp.id);
+    } else if (tool === 'brush' || tool === 'eraser') {
+      ctx.lineWidth = SIZES[currentSize].value;
+      if (tool === 'eraser') {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        ctx.arc(x, y, ctx.lineWidth / 2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,1)';
+        ctx.fill();
+        spawnEraserParticles(x, y);
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+        let color = currentColor;
+        if (isRainbow) {
+          color = `hsl(${hue}, 80%, 60%)`;
+          setHue(prev => (prev + 5) % 360);
+        } else if (isMagic) {
+          setHue(prev => (prev + 2) % 360);
+          color = `hsl(${hue}, 90%, 70%)`;
+        }
+        ctx.fillStyle = color;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = color;
+        ctx.beginPath();
+        ctx.arc(x, y, ctx.lineWidth / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      playMagicSound();
     }
   };
 
@@ -467,7 +469,7 @@ export default function MagicBoard() {
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (tool !== 'brush' && tool !== 'eraser') return;
-    if (isClickToDraw && !isPointerDown.current) return;
+    if (!isPointerDown.current) return;
     if (historyTimeoutRef.current) clearTimeout(historyTimeoutRef.current);
     historyTimeoutRef.current = setTimeout(saveToHistory, 1000);
     const canvas = canvasRef.current;
@@ -486,6 +488,7 @@ export default function MagicBoard() {
       ctx.arc(x, y, ctx.lineWidth / 2, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(0,0,0,1)';
       ctx.fill();
+      spawnEraserParticles(x, y);
     } else {
       ctx.globalCompositeOperation = 'source-over';
       let color = currentColor;
@@ -515,16 +518,11 @@ export default function MagicBoard() {
 
   const handleCustomColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newColor = e.target.value;
+    setCustomColor(newColor);
     setCurrentColor(newColor);
     setTool('brush');
     setIsRainbow(false);
     setIsMagic(false);
-    
-    // Update recent colors (avoid duplicates and keep top 5)
-    setRecentColors(prev => {
-      const filtered = prev.filter(c => c !== newColor);
-      return [newColor, ...filtered].slice(0, 5);
-    });
   };
 
   return (
@@ -549,21 +547,18 @@ export default function MagicBoard() {
           className="bg-white/10 backdrop-blur-md p-1.5 sm:p-3 rounded-xl sm:rounded-3xl flex flex-wrap justify-center gap-1.5 sm:gap-4 items-center border border-white/20 shadow-2xl max-w-full overflow-x-auto scrollbar-hide"
         >
           <div className="flex gap-1 sm:gap-2 pr-1.5 sm:pr-4 border-r border-white/10">
-            <button 
-              onClick={() => setIsClickToDraw(!isClickToDraw)} 
-              className={`p-1.5 sm:p-3 rounded-lg sm:rounded-2xl transition-all ${isClickToDraw ? 'bg-orange-500 shadow-lg scale-105' : 'bg-purple-600 shadow-lg scale-105'}`}
-              title={isClickToDraw ? "Modo: Clic para dibujar" : "Modo: Dibujo al pasar"}
-            >
-              {isClickToDraw ? <Hand size={18} className="sm:w-7 sm:h-7" /> : <Wand2 size={18} className="sm:w-7 sm:h-7" />}
-            </button>
             <button onClick={undo} className="p-1.5 sm:p-3 bg-blue-500 rounded-lg sm:rounded-2xl hover:bg-blue-400 transition-colors" title="Deshacer">
               <Undo2 size={18} className="sm:w-7 sm:h-7" />
             </button>
             <button onClick={clearCanvas} className="p-1.5 sm:p-3 bg-red-500 rounded-lg sm:rounded-2xl hover:bg-red-400 transition-colors" title="Borrar Todo">
               <Trash2 size={18} className="sm:w-7 sm:h-7" />
             </button>
-            <button onClick={() => setBgDark(!bgDark)} className="p-1.5 sm:p-3 bg-zinc-700 rounded-lg sm:rounded-2xl hover:bg-zinc-600 transition-colors" title="Cambiar Fondo">
-              <Layers size={18} className="sm:w-7 sm:h-7" />
+            <button 
+              onClick={() => { setTool('eraser'); setIsRainbow(false); setIsMagic(false); }}
+              className={`p-1.5 sm:p-3 rounded-lg sm:rounded-2xl transition-all ${tool === 'eraser' ? 'bg-pink-500 text-white scale-105 shadow-lg' : 'bg-white/10 text-white hover:bg-white/20'}`}
+              title="Goma de Borrar"
+            >
+              <Eraser size={18} className="sm:w-7 sm:h-7" />
             </button>
             <button onClick={() => setIsSoundOn(!isSoundOn)} className="p-1.5 sm:p-3 bg-yellow-600 rounded-lg sm:rounded-2xl hover:bg-yellow-500 transition-colors hidden sm:flex" title="Sonido">
               {isSoundOn ? <Volume2 size={18} className="sm:w-7 sm:h-7" /> : <VolumeX size={18} className="sm:w-7 sm:h-7" />}
@@ -582,25 +577,11 @@ export default function MagicBoard() {
               <Brush size={18} className="sm:w-7 sm:h-7" />
             </button>
             <button 
-              onClick={() => { setTool('brush'); setIsRainbow(true); setIsMagic(false); }}
-              className={`p-1.5 sm:p-3 rounded-lg sm:rounded-2xl transition-all ${isRainbow ? 'bg-gradient-to-r from-red-400 via-green-400 to-blue-400 scale-105 shadow-lg' : 'bg-white/10 text-white'}`}
-              title="Pincel Arcoíris"
-            >
-              <Palette size={18} className="sm:w-7 sm:h-7" />
-            </button>
-            <button 
               onClick={() => { setTool('brush'); setIsRainbow(false); setIsMagic(true); }}
               className={`p-1.5 sm:p-3 rounded-lg sm:rounded-2xl transition-all ${isMagic ? 'bg-gradient-to-tr from-yellow-400 to-pink-500 scale-105 shadow-lg' : 'bg-white/10 text-white'}`}
               title="Pincel Mágico"
             >
               <Sparkles size={18} className="sm:w-7 sm:h-7" />
-            </button>
-            <button 
-              onClick={() => { setTool('eraser'); setIsRainbow(false); setIsMagic(false); }}
-              className={`p-1.5 sm:p-3 rounded-lg sm:rounded-2xl transition-all ${tool === 'eraser' ? 'bg-pink-500 text-white scale-105 shadow-lg' : 'bg-white/10 text-white'}`}
-              title="Goma de Borrar"
-            >
-              <Eraser size={18} className="sm:w-7 sm:h-7" />
             </button>
           </div>
 
@@ -622,38 +603,35 @@ export default function MagicBoard() {
         <motion.div 
           initial={{ x: -100, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          className="bg-white/10 backdrop-blur-md p-1.5 sm:p-3 rounded-xl sm:rounded-3xl flex flex-col gap-1.5 sm:gap-3 border border-white/20 shadow-2xl overflow-y-auto max-h-[70vh] landscape:max-h-[85vh] scrollbar-hide"
+          className="bg-white/10 backdrop-blur-md p-1 sm:p-3 rounded-xl sm:rounded-3xl flex flex-col gap-1 sm:gap-2.5 border border-white/20 shadow-2xl overflow-y-auto max-h-[70vh] landscape:max-h-[85vh] scrollbar-hide"
         >
           {COLORS_BASE.map((c) => (
             <button
               key={`magic-color-${c.hex}`}
               onClick={() => { setCurrentColor(c.hex); setTool('brush'); setIsRainbow(false); setIsMagic(false); }}
-              className={`w-8 h-8 sm:w-12 sm:h-12 rounded-full border-2 sm:border-4 transition-all ${currentColor === c.hex && tool === 'brush' && !isRainbow && !isMagic ? 'border-white scale-110 shadow-xl' : 'border-transparent'}`}
+              className={`w-6 h-6 min-[375px]:w-8 min-[375px]:h-8 sm:w-12 sm:h-12 rounded-full border border-white/20 sm:border-4 transition-all ${currentColor === c.hex && tool === 'brush' && !isRainbow && !isMagic ? 'border-white scale-110 shadow-xl ring-2 ring-white/50' : 'border-transparent'}`}
               style={{ backgroundColor: c.hex }}
               title={c.label}
             />
           ))}
           
-          {recentColors.length > 0 && <div className="h-px bg-white/20 mx-2 my-1" />}
-          
-          {recentColors.map((hex, i) => (
-            <button
-              key={`recent-${hex}-${i}`}
-              onClick={() => { setCurrentColor(hex); setTool('brush'); setIsRainbow(false); setIsMagic(false); }}
-              className={`w-8 h-8 sm:w-12 sm:h-12 rounded-full border-2 sm:border-4 transition-all ${currentColor === hex && tool === 'brush' && !isRainbow && !isMagic ? 'border-white scale-110 shadow-xl' : 'border-transparent'}`}
-              style={{ backgroundColor: hex }}
-              title="Color reciente"
-            />
-          ))}
-
-          <div className="h-px bg-white/20 mx-2 my-1" />
+          <div className="h-px bg-white/20 mx-2 my-0.5" />
           
           <button
-            onClick={() => colorInputRef.current?.click()}
-            className="w-8 h-8 sm:w-12 sm:h-12 rounded-full border-2 sm:border-4 border-dashed border-white/30 flex items-center justify-center bg-white/5 hover:bg-white/20 transition-all"
+            onClick={() => {
+              if (customColor) {
+                setCurrentColor(customColor);
+                setTool('brush');
+                setIsRainbow(false);
+                setIsMagic(false);
+              }
+              colorInputRef.current?.click();
+            }}
+            className={`w-6 h-6 min-[375px]:w-8 min-[375px]:h-8 sm:w-12 sm:h-12 rounded-full border sm:border-4 transition-all flex items-center justify-center ${currentColor === customColor && tool === 'brush' && !isRainbow && !isMagic && customColor ? 'border-white scale-110 shadow-xl ring-2 ring-white/50' : 'border-white/30 border-dashed bg-white/5 hover:bg-white/20 text-white'}`}
+            style={{ backgroundColor: customColor || 'transparent' }}
             title="Elegir más colores"
           >
-            <Palette size={16} className="text-white" />
+            {!customColor && <Palette className="w-3.5 h-3.5 min-[375px]:w-4 min-[375px]:h-4 sm:w-6 sm:h-6" />}
           </button>
         </motion.div>
       </div>
@@ -662,7 +640,7 @@ export default function MagicBoard() {
         <motion.div 
           initial={{ x: 100, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          className="bg-white/10 backdrop-blur-md p-1.5 sm:p-3 rounded-xl sm:rounded-3xl flex flex-col gap-1 sm:gap-2 max-h-[70vh] landscape:max-h-[85vh] overflow-y-auto border border-white/20 shadow-2xl scrollbar-hide"
+          className="bg-white/10 backdrop-blur-md p-1 sm:p-3 rounded-xl sm:rounded-3xl flex flex-col gap-1 sm:gap-2 max-h-[70vh] landscape:max-h-[85vh] overflow-y-auto border border-white/20 shadow-2xl scrollbar-hide"
         >
           {STAMPS.map((stamp) => {
             const Icon = stamp.icon;
@@ -670,10 +648,10 @@ export default function MagicBoard() {
               <button
                 key={`magic-stamp-${stamp.id}`}
                 onClick={() => { setSelectedStamp(stamp); setTool('stamp'); }}
-                className={`w-9 h-9 sm:w-14 sm:h-14 rounded-lg sm:rounded-2xl flex items-center justify-center transition-all border-2 ${tool === 'stamp' && selectedStamp.id === stamp.id ? 'bg-white/20 border-white scale-110 shadow-xl' : 'bg-white/10 border-transparent text-white hover:bg-white/20'}`}
+                className={`w-7 h-7 min-[375px]:w-9 min-[375px]:h-9 sm:w-14 sm:h-14 rounded-lg sm:rounded-2xl flex items-center justify-center transition-all border ${tool === 'stamp' && selectedStamp.id === stamp.id ? 'bg-white/20 border-white scale-110 shadow-xl' : 'bg-white/10 border-transparent text-white hover:bg-white/20'}`}
                 title={stamp.label}
               >
-                <Icon size={20} className="sm:w-8 sm:h-8" style={{ color: stamp.color }} />
+                <Icon className="w-4 h-4 min-[375px]:w-5 min-[375px]:h-5 sm:w-8 sm:h-8" style={{ color: stamp.color }} />
               </button>
             );
           })}
@@ -692,6 +670,22 @@ export default function MagicBoard() {
           onPointerMove={handlePointerMove}
           className="w-full h-full touch-none"
         />
+        {eraserParticles.map(p => (
+          <div
+            key={`eraser-p-${p.id}`}
+            className="absolute pointer-events-none rounded-full"
+            style={{
+              left: p.x,
+              top: p.y,
+              width: p.size,
+              height: p.size,
+              backgroundColor: p.color,
+              opacity: p.opacity,
+              transform: 'translate(-50%, -50%)',
+              zIndex: 10,
+            }}
+          />
+        ))}
         {(tool === 'brush' || tool === 'eraser') && (
           <CursorFollower 
             color={isRainbow || isMagic ? `hsl(${hue}, 100%, 70%)` : currentColor} 
