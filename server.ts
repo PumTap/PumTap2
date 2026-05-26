@@ -333,6 +333,21 @@ async function startServer() {
     }
   });
 
+  // Update accessibility settings
+  app.post('/api/user/update-accessibility', async (req, res) => {
+    const { uid, accessibility } = req.body;
+    if (!uid || !accessibility) {
+      return res.status(400).json({ error: 'UID y configuración de accesibilidad requeridos' });
+    }
+    try {
+      const userRef = doc(db, 'users', uid);
+      await updateDoc(userRef, { accessibility });
+      res.json({ success: true, accessibility });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // Purchase premium
   app.post('/api/user/buy-premium', async (req, res) => {
     const { uid } = req.body;

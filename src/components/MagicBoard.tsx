@@ -788,12 +788,6 @@ export default function MagicBoard() {
         onChange={handleCustomColorChange} 
         className="hidden" 
       />
-      <div className="absolute inset-0 pointer-events-none opacity-20">
-        <div className="absolute top-10 left-20 w-1 h-1 bg-white rounded-full animate-pulse" />
-        <div className="absolute top-40 right-40 w-1.5 h-1.5 bg-yellow-200 rounded-full animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute bottom-20 left-1/4 w-1 h-1 bg-blue-200 rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-1/2 right-1/4 w-0.5 h-0.5 bg-pink-200 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
-      </div>
 
       <div className="absolute top-2 sm:top-4 left-0 right-0 z-30 flex justify-center px-4 pointer-events-none">
         <motion.div 
@@ -995,7 +989,7 @@ export default function MagicBoard() {
       </AnimatePresence>
 
       <div className="absolute bottom-4 left-0 right-0 pointer-events-none flex justify-center">
-        <p className="text-white/30 font-comic text-lg">Pizarra Mágica ✨ Un espacio para crear</p>
+        <p className="text-white/30 font-comic text-lg">Pizarra ✨ Un espacio para crear</p>
       </div>
     </div>
   );

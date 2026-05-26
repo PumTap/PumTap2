@@ -26,7 +26,11 @@ import {
   Loader2,
   Star,
   X,
-  RefreshCw
+  RefreshCw,
+  Eye,
+  Type,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import MagicBoard from './components/MagicBoard';
@@ -45,6 +49,13 @@ import Auth from './components/Auth';
 import Tutorial from './components/Tutorial';
 import logoUrl from './assets/images/pumtap_logo_1779570363768.png';
 
+interface AccessibilitySettings {
+  colorBlindness: 'none' | 'protanopia' | 'deuteranopia' | 'tritanopia' | 'highcontrast';
+  subtitles: boolean;
+  screenReader: boolean;
+  largeFonts: boolean;
+}
+
 interface UserProfile {
   uid: string;
   name: string;
@@ -54,6 +65,7 @@ interface UserProfile {
   isPremium: boolean;
   pointsLimit?: number;
   pointsPerGame?: Record<string, number>;
+  accessibility?: AccessibilitySettings;
 }
 
 interface SyncItem {
@@ -67,7 +79,7 @@ interface SyncItem {
 }
 
 const GAMES = [
-  { id: 'magicboard', icon: Brush, label: 'Pizzarra', color: 'from-blue-500 to-cyan-500' },
+  { id: 'magicboard', icon: Brush, label: 'Pizarra', color: 'from-blue-500 to-cyan-500' },
   { id: 'mathhands', icon: Hand, label: 'Mates', color: 'from-orange-500 to-amber-500' },
   { id: 'memory', icon: Search, label: 'Memo', color: 'from-green-500 to-teal-500' },
   { id: 'balloons', icon: Target, label: 'Globos', color: 'from-pink-500 to-rose-500' },
@@ -425,6 +437,15 @@ export default function App() {
     return () => clearInterval(intervalId);
   }, [checkoutUrl, userProfile]);
 
+  const speakText = (text: string) => {
+    if (userProfile?.accessibility?.screenReader && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'es-ES';
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
   const toggleLock = () => {
     if (!containerRef.current) return;
     const newLockState = !isLocked;
@@ -613,29 +634,27 @@ export default function App() {
     }
   };
 
-  const handleTutorialComplete = async () => {
+  const handleTutorialComplete = async (settings: AccessibilitySettings) => {
     if (!userProfile) return;
     
-    setUserProfile(prev => prev ? { ...prev, hasSeenTutorial: true } : null);
+    setUserProfile(prev => prev ? { ...prev, hasSeenTutorial: true, accessibility: settings } : null);
 
-    const updated = { ...userProfile, hasSeenTutorial: true };
+    const updated = { ...userProfile, hasSeenTutorial: true, accessibility: settings };
     localStorage.setItem('magic_play_user_profile', JSON.stringify(updated));
 
     try {
-      const response = await fetch('/api/user/seen-tutorial', {
+      await fetch('/api/user/seen-tutorial', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uid: userProfile.uid })
       });
-      if (!response.ok) {
-        throw new Error('Server error seen tutorial');
-      }
-      const data = await response.json();
-      if (!data.success) {
-        throw new Error(data.error || 'Server rejected seen-tutorial');
-      }
+      await fetch('/api/user/update-accessibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: userProfile.uid, accessibility: settings })
+      });
     } catch (error) {
-      console.error('Error completing tutorial, queueing offline:', error);
+      console.error('Error completing tutorial and saving accessibility, queueing:', error);
       addToSyncQueue({
         id: `seen-tutorial-${userProfile.uid}-${Date.now()}-${Math.random()}`,
         type: 'seen-tutorial',
@@ -839,8 +858,23 @@ export default function App() {
     );
   }
 
+  const getAccessibilityClasses = () => {
+    if (!userProfile?.accessibility) return '';
+    const { colorBlindness, largeFonts } = userProfile.accessibility;
+    let classes = '';
+    
+    if (colorBlindness === 'protanopia') classes += ' filter-protanopia';
+    if (colorBlindness === 'deuteranopia') classes += ' filter-deuteranopia';
+    if (colorBlindness === 'tritanopia') classes += ' filter-tritanopia';
+    if (colorBlindness === 'highcontrast') classes += ' filter-highcontrast';
+    
+    if (largeFonts) classes += ' accessibility-large-fonts';
+    
+    return classes;
+  };
+
   return (
-    <div ref={containerRef} className="fixed inset-0 bg-zinc-950 flex flex-col select-none touch-none overflow-hidden font-sans">
+    <div ref={containerRef} className={`fixed inset-0 bg-zinc-950 flex flex-col select-none touch-none overflow-hidden font-sans${getAccessibilityClasses()}`}>
       {/* SUPERIOR BAR - GAME LAUNCHER */}
       <header className="h-12 sm:h-14 bg-zinc-900/40 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-2 sm:px-4 z-50 relative">
         <div className="flex items-center gap-2">
@@ -1191,8 +1225,8 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Kids Mode Selector */}
-                  <div className="flex justify-center mb-6">
+                  {/* Kids Mode Selector and Accessible Modes link */}
+                  <div className="flex flex-col items-center gap-3 mb-6">
                     {userProfile?.isPremium ? (
                       <div className="bg-zinc-900/80 backdrop-blur-md p-4 rounded-[2rem] border border-white/10 flex items-center justify-between gap-6 max-w-sm w-full shadow-lg">
                         <div className="flex items-center gap-3 text-left">
@@ -1235,6 +1269,23 @@ export default function App() {
                         <span className="text-[10px] font-black uppercase tracking-wider bg-yellow-500/20 text-yellow-400 px-3 py-1.5 rounded-xl">🔒 Desbloquear</span>
                       </div>
                     )}
+
+                    {/* Modos accesibles */}
+                    <button
+                      onClick={() => {
+                        if (!isLocked) {
+                          setActiveGame('profile');
+                          speakText("Navegando a Ajustes de Accesibilidad en tu Perfil");
+                        }
+                      }}
+                      disabled={isBlocked && isLocked} // isLocked check
+                      className={`group flex items-center justify-center gap-2 px-5 py-2.5 rounded-full border border-teal-500/30 bg-teal-950/20 hover:bg-teal-500/25 text-teal-350 hover:text-teal-300 font-comic text-xs font-black transition-all shadow-md ${
+                        isLocked ? 'opacity-40 cursor-not-allowed border-zinc-800 bg-transparent text-zinc-500' : 'hover:scale-105 active:scale-95 cursor-pointer'
+                      }`}
+                    >
+                      <Eye size={16} className="animate-pulse text-teal-400" />
+                      <span>⚙️ MODOS ACCESIBLES (FILTROS, LECTOR...)</span>
+                    </button>
                   </div>
                 </div>
                 
@@ -1488,6 +1539,212 @@ export default function App() {
                           </div>
                         );
                       })}
+                    </div>
+                  </div>
+
+                  {/* Accessibility Settings Section */}
+                  <div className="text-left pt-6 border-t border-white/5 flex flex-col gap-4">
+                    <h3 className="text-sm sm:text-base font-black text-zinc-300 uppercase tracking-widest font-comic flex items-center gap-2">
+                      <Sparkles size={16} className="text-teal-400" />
+                      Ajustes de Accesibilidad
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Option 1: Colorblindness Filters */}
+                      <div className="bg-zinc-950/40 border border-white/5 rounded-2xl p-4 flex flex-col gap-2.5">
+                        <span className="text-xs uppercase font-extrabold text-teal-400 tracking-wider flex items-center gap-2">
+                          <Palette size={14} /> Filtro de Color / Daltonismo
+                        </span>
+                        <div className="grid grid-cols-2 gap-1.5 text-[10px] sm:text-xs font-comic">
+                          {[
+                            { id: 'none', label: 'Estándar' },
+                            { id: 'protanopia', label: 'Protanopía (Rojo)' },
+                            { id: 'deuteranopia', label: 'Deuteranopía (Verde)' },
+                            { id: 'tritanopia', label: 'Tritanopía (Azul)' },
+                            { id: 'highcontrast', label: 'Alto Contraste 🌗' }
+                          ].map((opt) => (
+                            <button
+                              key={opt.id}
+                              onClick={async () => {
+                                if (!userProfile) return;
+                                const current = userProfile.accessibility || {
+                                  colorBlindness: 'none',
+                                  subtitles: false,
+                                  screenReader: false,
+                                  largeFonts: false
+                                };
+                                const updatedSettings = { ...current, colorBlindness: opt.id as any };
+                                const updatedProfile = { ...userProfile, accessibility: updatedSettings };
+                                setUserProfile(updatedProfile);
+                                localStorage.setItem('magic_play_user_profile', JSON.stringify(updatedProfile));
+                                
+                                let spanishName = "Estándar";
+                                if (opt.id === 'protanopia') spanishName = "Filtro Protanopía";
+                                if (opt.id === 'deuteranopia') spanishName = "Filtro Deuteranopía";
+                                if (opt.id === 'tritanopia') spanishName = "Filtro Tritanopía";
+                                if (opt.id === 'highcontrast') spanishName = "Modo Alto Contraste";
+                                
+                                if (updatedSettings.screenReader) {
+                                  speakText(`Filtro de color cambiado a ${spanishName}`);
+                                }
+
+                                try {
+                                  await fetch('/api/user/update-accessibility', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ uid: userProfile.uid, accessibility: updatedSettings })
+                                  });
+                                } catch (e) {
+                                  console.error("Error storing accessibility settings:", e);
+                                }
+                              }}
+                              className={`py-1.5 px-2 rounded-lg font-bold border transition-all text-left truncate ${
+                                (userProfile?.accessibility?.colorBlindness || 'none') === opt.id
+                                  ? 'bg-teal-500/20 border-teal-400 text-teal-350'
+                                  : 'bg-zinc-900/40 border-white/5 text-zinc-400 hover:border-white/10'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Option 2: Huge Fonts toggle */}
+                      <div className="bg-zinc-950/40 border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+                        <div className="flex flex-col gap-1 pr-2">
+                          <span className="text-xs uppercase font-extrabold text-teal-400 tracking-wider flex items-center gap-2">
+                            <Type size={14} /> Textos Más Grandes
+                          </span>
+                          <span className="text-[10px] sm:text-[11px] text-zinc-550 leading-normal font-sans">
+                            Aumenta el tamaño de la letra para una lectura más cómoda.
+                          </span>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            if (!userProfile) return;
+                            const current = userProfile.accessibility || {
+                              colorBlindness: 'none',
+                              subtitles: false,
+                              screenReader: false,
+                              largeFonts: false
+                            };
+                            const nextVal = !current.largeFonts;
+                            const updatedSettings = { ...current, largeFonts: nextVal };
+                            const updatedProfile = { ...userProfile, accessibility: updatedSettings };
+                            setUserProfile(updatedProfile);
+                            localStorage.setItem('magic_play_user_profile', JSON.stringify(updatedProfile));
+                            
+                            if (current.screenReader) {
+                              speakText(nextVal ? "Tamaño de fuentes ampliado" : "Tamaño de fuentes estándar");
+                            }
+
+                            try {
+                              await fetch('/api/user/update-accessibility', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ uid: userProfile.uid, accessibility: updatedSettings })
+                              });
+                            } catch (e) {}
+                          }}
+                          className="text-teal-400 hover:scale-110 active:scale-95 transition-all outline-none"
+                        >
+                          {userProfile?.accessibility?.largeFonts ? <ToggleRight size={40} /> : <ToggleLeft size={40} className="text-zinc-650" />}
+                        </button>
+                      </div>
+
+                      {/* Option 3: Screen Reader toggle */}
+                      <div className="bg-zinc-950/40 border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+                        <div className="flex flex-col gap-1 pr-2">
+                          <span className="text-xs uppercase font-extrabold text-teal-400 tracking-wider flex items-center gap-2">
+                            <Volume2 size={14} /> Asistente de Voz / Lector
+                          </span>
+                          <span className="text-[10px] sm:text-[11px] text-zinc-550 leading-normal font-sans">
+                            Lector de pantalla que lee descripciones y acciones por voz.
+                          </span>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            if (!userProfile) return;
+                            const current = userProfile.accessibility || {
+                              colorBlindness: 'none',
+                              subtitles: false,
+                              screenReader: false,
+                              largeFonts: false
+                            };
+                            const nextVal = !current.screenReader;
+                            const updatedSettings = { ...current, screenReader: nextVal };
+                            const updatedProfile = { ...userProfile, accessibility: updatedSettings };
+                            setUserProfile(updatedProfile);
+                            localStorage.setItem('magic_play_user_profile', JSON.stringify(updatedProfile));
+                            
+                            if (nextVal) {
+                              setTimeout(() => {
+                                if (window.speechSynthesis) {
+                                  window.speechSynthesis.cancel();
+                                  const utterance = new SpeechSynthesisUtterance("Asistente por voz activado");
+                                  utterance.lang = "es-ES";
+                                  window.speechSynthesis.speak(utterance);
+                                }
+                              }, 100);
+                            }
+
+                            try {
+                              await fetch('/api/user/update-accessibility', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ uid: userProfile.uid, accessibility: updatedSettings })
+                              });
+                            } catch (e) {}
+                          }}
+                          className="text-teal-400 hover:scale-110 active:scale-95 transition-all outline-none"
+                        >
+                          {userProfile?.accessibility?.screenReader ? <ToggleRight size={40} /> : <ToggleLeft size={40} className="text-zinc-650" />}
+                        </button>
+                      </div>
+
+                      {/* Option 4: Subtitles toggle */}
+                      <div className="bg-zinc-950/40 border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+                        <div className="flex flex-col gap-1 pr-2">
+                          <span className="text-xs uppercase font-extrabold text-teal-400 tracking-wider flex items-center gap-2">
+                            <Zap size={14} /> Subtítulos Visuales
+                          </span>
+                          <span className="text-[10px] sm:text-[11px] text-zinc-550 leading-normal font-sans">
+                            Bocadillos o textos de ayuda visual para efectos musicales y de audio.
+                          </span>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            if (!userProfile) return;
+                            const current = userProfile.accessibility || {
+                              colorBlindness: 'none',
+                              subtitles: false,
+                              screenReader: false,
+                              largeFonts: false
+                            };
+                            const nextVal = !current.subtitles;
+                            const updatedSettings = { ...current, subtitles: nextVal };
+                            const updatedProfile = { ...userProfile, accessibility: updatedSettings };
+                            setUserProfile(updatedProfile);
+                            localStorage.setItem('magic_play_user_profile', JSON.stringify(updatedProfile));
+                            
+                            if (current.screenReader) {
+                              speakText(nextVal ? "Subtítulos visuales activados" : "Subtítulos desactivados");
+                            }
+
+                            try {
+                              await fetch('/api/user/update-accessibility', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ uid: userProfile.uid, accessibility: updatedSettings })
+                              });
+                            } catch (e) {}
+                          }}
+                          className="text-teal-400 hover:scale-110 active:scale-95 transition-all outline-none"
+                        >
+                          {userProfile?.accessibility?.subtitles ? <ToggleRight size={40} /> : <ToggleLeft size={40} className="text-zinc-650" />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

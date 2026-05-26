@@ -37,6 +37,10 @@
           "type": "object",
           "description": "Breakdown of points earned in each game mode"
         },
+        "accessibility": {
+          "type": "object",
+          "description": "Accessibility settings like color blindness, subtitles, screen reader, etc."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",

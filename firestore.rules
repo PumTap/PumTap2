@@ -30,7 +30,7 @@ service cloud.firestore {
     // --- Validation Blueprints ---
     function isValidUser(data) {
       return data.keys().hasAll(['name', 'email', 'hasSeenTutorial', 'points', 'isPremium', 'createdAt', 'pointsLimit']) &&
-             data.keys().size() <= 9 &&
+             data.keys().size() <= 11 &&
              data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
              data.email is string && data.email.size() > 0 && data.email.size() <= 200 &&
              data.hasSeenTutorial is bool &&
@@ -39,7 +39,8 @@ service cloud.firestore {
              data.pointsLimit is number && data.pointsLimit >= 2000 &&
              data.createdAt is timestamp &&
              (!data.keys().hasAny(['processedSessions']) || (data.processedSessions is list && data.processedSessions.size() <= 100)) &&
-             (!data.keys().hasAny(['pointsPerGame']) || data.pointsPerGame is map);
+             (!data.keys().hasAny(['pointsPerGame']) || data.pointsPerGame is map) &&
+             (!data.keys().hasAny(['accessibility']) || data.accessibility is map);
     }
 
     // --- User Rules ---
@@ -64,6 +65,9 @@ service cloud.firestore {
                         // Action: Mark tutorial as seen
                         (incoming().diff(existing()).affectedKeys().hasOnly(['hasSeenTutorial']) && 
                          incoming().hasSeenTutorial == true) ||
+                        // Action: Update accessibility and optional tutorial mark
+                        (incoming().diff(existing()).affectedKeys().hasOnly(['accessibility', 'hasSeenTutorial']) &&
+                         (!incoming().keys().hasAny(['accessibility']) || incoming().accessibility is map)) ||
                         // Action: Buy Premium
                         (incoming().diff(existing()).affectedKeys().hasOnly(['isPremium']) && 
                          incoming().isPremium == true) ||
