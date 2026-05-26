@@ -55,7 +55,7 @@ interface UserProfile {
 }
 
 const GAMES = [
-  { id: 'magicboard', icon: Brush, label: 'Punta', color: 'from-blue-500 to-cyan-500' },
+  { id: 'magicboard', icon: Brush, label: 'Pizzarra', color: 'from-blue-500 to-cyan-500' },
   { id: 'mathhands', icon: Hand, label: 'Mates', color: 'from-orange-500 to-amber-500' },
   { id: 'memory', icon: Search, label: 'Memo', color: 'from-green-500 to-teal-500' },
   { id: 'balloons', icon: Target, label: 'Globos', color: 'from-pink-500 to-rose-500' },
@@ -552,7 +552,7 @@ export default function App() {
         </div>
 
         {/* Game Launcher Icons */}
-        <nav className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 overflow-x-auto px-2 scrollbar-hide">
+        <nav className="flex-1 flex items-center justify-start md:justify-center gap-1 sm:gap-1.5 overflow-x-auto px-2 scrollbar-hide">
           {GAMES.map((game) => {
             const isCurrent = activeGame === game.id;
             return (
