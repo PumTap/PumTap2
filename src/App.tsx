@@ -25,7 +25,8 @@ import {
   Clock,
   Loader2,
   Star,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import MagicBoard from './components/MagicBoard';
@@ -52,6 +53,16 @@ interface UserProfile {
   hasSeenTutorial: boolean;
   isPremium: boolean;
   pointsLimit?: number;
+}
+
+interface SyncItem {
+  id: string;
+  type: 'update-points' | 'seen-tutorial';
+  uid: string;
+  data: {
+    points?: number;
+  };
+  timestamp: number;
 }
 
 const GAMES = [
@@ -82,8 +93,177 @@ export default function App() {
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [checkoutType, setCheckoutType] = useState<'premium' | 'extension' | null>(null);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [showResetInput, setShowResetInput] = useState(false);
+  const [customPointsVal, setCustomPointsVal] = useState('100');
   
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const [syncQueue, setSyncQueue] = useState<SyncItem[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [showSyncSuccess, setShowSyncSuccess] = useState(false);
+
+  const isSyncingRef = useRef(false);
+  const lastSyncFailedRef = useRef<number>(0);
+
+  // Helper to add events to offline queue
+  const addToSyncQueue = useCallback((item: SyncItem) => {
+    setSyncQueue(prev => {
+      const merged = [...prev];
+      if (item.type === 'update-points') {
+        const existingIdx = merged.findIndex(i => i.type === 'update-points' && i.uid === item.uid);
+        if (existingIdx !== -1) {
+          const oldPoints = merged[existingIdx].data.points || 0;
+          const newPoints = item.data.points || 0;
+          merged[existingIdx] = {
+            ...merged[existingIdx],
+            data: { points: Math.max(oldPoints, newPoints) },
+            timestamp: Date.now()
+          };
+          localStorage.setItem('pumtap_offline_sync_queue', JSON.stringify(merged));
+          return merged;
+        }
+      }
+      const newQueue = [...merged, item];
+      localStorage.setItem('pumtap_offline_sync_queue', JSON.stringify(newQueue));
+      return newQueue;
+    });
+  }, []);
+
+  // Worker to sync items sequentially when connection is available
+  const syncPendingProgress = useCallback(async (currentQueue: SyncItem[]) => {
+    if (currentQueue.length === 0 || isSyncingRef.current) return;
+    
+    // Cooldown check to prevent continuous fast retries when fetch fails
+    if (Date.now() - lastSyncFailedRef.current < 15000) {
+      return;
+    }
+
+    isSyncingRef.current = true;
+    setIsSyncing(true);
+
+    const remaining = [...currentQueue];
+    let countSynced = 0;
+    let fallbackToFailed = false;
+
+    for (let i = 0; i < currentQueue.length; i++) {
+      const item = currentQueue[i];
+      try {
+        let url = '';
+        let body: any = { uid: item.uid };
+
+        if (item.type === 'update-points') {
+          url = '/api/user/update-points';
+          body.points = item.data.points;
+        } else if (item.type === 'seen-tutorial') {
+          url = '/api/user/seen-tutorial';
+        }
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data && (data.success || !data.error)) {
+            const idx = remaining.findIndex(r => r.id === item.id);
+            if (idx !== -1) {
+              remaining.splice(idx, 1);
+            }
+            countSynced++;
+          } else {
+            // Drop invalid/errored requests
+            const idx = remaining.findIndex(r => r.id === item.id);
+            if (idx !== -1) {
+              remaining.splice(idx, 1);
+            }
+          }
+        } else {
+          fallbackToFailed = true;
+          break;
+        }
+      } catch (err) {
+        console.error("Failed to sync offline progress item:", item, err);
+        fallbackToFailed = true;
+        break;
+      }
+    }
+
+    if (fallbackToFailed) {
+      lastSyncFailedRef.current = Date.now();
+    }
+
+    setSyncQueue(prev => {
+      // Find items in prev that were NOT in the currentQueue snapshot, and preserve them (race protection)
+      const currentIds = new Set(currentQueue.map(item => item.id));
+      const newlyAdded = prev.filter(item => !currentIds.has(item.id));
+      const finalQueue = [...remaining, ...newlyAdded];
+      localStorage.setItem('pumtap_offline_sync_queue', JSON.stringify(finalQueue));
+      return finalQueue;
+    });
+
+    setIsSyncing(false);
+    isSyncingRef.current = false;
+
+    if (countSynced > 0 && remaining.length === 0) {
+      setShowSyncSuccess(true);
+      setTimeout(() => setShowSyncSuccess(false), 3000);
+    }
+  }, []);
+
+  // Load sync queue on mount & listen to connection events
+  useEffect(() => {
+    const savedQueue = localStorage.getItem('pumtap_offline_sync_queue');
+    if (savedQueue) {
+      try {
+        setSyncQueue(JSON.parse(savedQueue));
+      } catch (e) {
+        console.error("Error reading saved sync queue:", e);
+      }
+    }
+
+    const handleOnline = () => {
+      setIsOnline(true);
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Sync if online state changes or queue changes
+  useEffect(() => {
+    if (isOnline && syncQueue.length > 0 && !isSyncing) {
+      const timeSinceLastFailure = Date.now() - lastSyncFailedRef.current;
+      if (timeSinceLastFailure >= 15000) {
+        syncPendingProgress(syncQueue);
+      }
+    }
+  }, [isOnline, syncQueue.length, isSyncing, syncPendingProgress]);
+
+  // Periodic fallback check (every 15s)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (typeof navigator !== 'undefined' && navigator.onLine && syncQueue.length > 0 && !isSyncing) {
+        setIsOnline(true);
+        const timeSinceLastFailure = Date.now() - lastSyncFailedRef.current;
+        if (timeSinceLastFailure >= 15000) {
+          syncPendingProgress(syncQueue);
+        }
+      }
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [syncQueue.length, isSyncing, syncPendingProgress]);
 
   // Restore session on render and sync in background
   useEffect(() => {
@@ -226,6 +406,21 @@ export default function App() {
     }
   };
 
+  const toggleFullscreenOnly = () => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch(err => {
+        console.error(`Error entering fullscreen: ${err.message}`);
+      });
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen().catch(err => {
+        console.error(`Error exiting fullscreen: ${err.message}`);
+      });
+      setIsFullscreen(false);
+    }
+  };
+
   useEffect(() => {
     const handleFsChange = () => {
       const fsActive = !!document.fullscreenElement;
@@ -246,21 +441,52 @@ export default function App() {
     // Optimistic UI updates for stellar gameplay fluid response
     setUserProfile(prev => prev ? { ...prev, points: newPoints } : null);
 
+    // Save locally immediately so return/close preserves progress
+    const updated = { ...userProfile, points: newPoints };
+    localStorage.setItem('magic_play_user_profile', JSON.stringify(updated));
+
     try {
       const response = await fetch('/api/user/update-points', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uid: userProfile.uid, points: newPoints })
       });
+      if (!response.ok) {
+        throw new Error('Server error updating points');
+      }
       const data = await response.json();
-      if (data.success) {
-        const updated = { ...userProfile, points: newPoints };
-        localStorage.setItem('magic_play_user_profile', JSON.stringify(updated));
+      if (!data.success) {
+        throw new Error(data.error || 'Server rejected points update');
       }
     } catch (error) {
-      console.error('Error updating points:', error);
+      console.error('Error updating points, queueing offline:', error);
+      addToSyncQueue({
+        id: `update-points-${userProfile.uid}-${Date.now()}-${Math.random()}`,
+        type: 'update-points',
+        uid: userProfile.uid,
+        data: { points: newPoints },
+        timestamp: Date.now()
+      });
     }
-  }, [userProfile]);
+  }, [userProfile, isKidsMode, addToSyncQueue]);
+
+  const handleResetPoints = async (pointsNum: number) => {
+    if (!userProfile) return;
+    setUserProfile(prev => prev ? { ...prev, points: pointsNum } : null);
+    const updated = { ...userProfile, points: pointsNum };
+    localStorage.setItem('magic_play_user_profile', JSON.stringify(updated));
+    setShowResetInput(false);
+
+    try {
+      await fetch('/api/user/update-points', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: userProfile.uid, points: pointsNum })
+      });
+    } catch (e) {
+      console.error("Error resetting points on server:", e);
+    }
+  };
 
   const handleLogout = async () => {
     localStorage.removeItem('magic_play_user_profile');
@@ -319,19 +545,31 @@ export default function App() {
     
     setUserProfile(prev => prev ? { ...prev, hasSeenTutorial: true } : null);
 
+    const updated = { ...userProfile, hasSeenTutorial: true };
+    localStorage.setItem('magic_play_user_profile', JSON.stringify(updated));
+
     try {
       const response = await fetch('/api/user/seen-tutorial', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uid: userProfile.uid })
       });
+      if (!response.ok) {
+        throw new Error('Server error seen tutorial');
+      }
       const data = await response.json();
-      if (data.success) {
-        const updated = { ...userProfile, hasSeenTutorial: true };
-        localStorage.setItem('magic_play_user_profile', JSON.stringify(updated));
+      if (!data.success) {
+        throw new Error(data.error || 'Server rejected seen-tutorial');
       }
     } catch (error) {
-      console.error('Error completing tutorial:', error);
+      console.error('Error completing tutorial, queueing offline:', error);
+      addToSyncQueue({
+        id: `seen-tutorial-${userProfile.uid}-${Date.now()}-${Math.random()}`,
+        type: 'seen-tutorial',
+        uid: userProfile.uid,
+        data: {},
+        timestamp: Date.now()
+      });
     }
   };
 
@@ -586,6 +824,18 @@ export default function App() {
           </div>
 
           <button 
+            onClick={toggleFullscreenOnly}
+            className={`p-1.5 sm:p-2 rounded-lg flex items-center justify-center border transition-all ${
+              isFullscreen 
+                ? 'bg-blue-500/20 border-blue-500/40 text-blue-400 hover:bg-blue-500/30 shadow-lg shadow-blue-500/10' 
+                : 'bg-zinc-800/30 hover:bg-zinc-700/50 text-zinc-400 border-transparent hover:text-white'
+            }`}
+            title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+          >
+            {isFullscreen ? <Minimize size={16} className="text-blue-400 animate-pulse" /> : <Maximize size={16} />}
+          </button>
+
+          <button 
             onClick={toggleLock}
             className={`p-1.5 sm:p-2 rounded-lg flex items-center justify-center border transition-all ${
               isLocked 
@@ -827,9 +1077,58 @@ export default function App() {
                   <h1 className="text-3xl sm:text-6xl md:text-8xl font-black text-white font-comic tracking-tight uppercase mb-2 landscape:mb-0 drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)] leading-tight px-2">
                     ¡HOLA <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500">{(userProfile?.name || '').toUpperCase()}</span>!
                   </h1>
-                  <p className="text-sm sm:text-xl md:text-2xl text-zinc-400 font-comic max-w-2xl mx-auto mb-4">
+                  <p className="text-sm sm:text-xl md:text-2xl text-zinc-400 font-comic max-w-2xl mx-auto mb-2">
                     ¡Tienes <span className="text-yellow-500 font-black">{userProfile?.points}</span> puntos! Completa retos para ganar más y desbloquear sorpresas.
                   </p>
+
+                  {/* Reset/Correct Points UI */}
+                  {userProfile && userProfile.points > 1000 && (
+                    <div className="mb-6 flex flex-col items-center justify-center font-comic z-20 relative">
+                      {!showResetInput ? (
+                        <button
+                          onClick={() => {
+                            setShowResetInput(true);
+                            setCustomPointsVal('100');
+                          }}
+                          className="bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 text-xs sm:text-sm px-4 py-2 rounded-xl transition-all border border-yellow-500/20 flex items-center gap-2 shadow-lg cursor-pointer"
+                        >
+                          <RefreshCw size={14} className="animate-spin-slow text-yellow-500" />
+                          <span>¿Corregir puntos acumulados por error?</span>
+                        </button>
+                      ) : (
+                        <div className="bg-zinc-950 border border-white/10 p-4 rounded-2xl flex flex-col sm:flex-row items-center gap-3 shadow-2xl relative z-30">
+                          <span className="text-zinc-400 text-xs sm:text-sm">Escribe tus puntos reales:</span>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              value={customPointsVal}
+                              onChange={(e) => setCustomPointsVal(e.target.value)}
+                              className="w-24 bg-zinc-900 border border-white/20 rounded-lg px-2 py-1 text-white text-center text-sm font-black focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                              min="0"
+                              max="10000"
+                            />
+                            <button
+                              onClick={() => {
+                                const pts = parseInt(customPointsVal, 10);
+                                if (!isNaN(pts)) {
+                                  handleResetPoints(pts);
+                                }
+                              }}
+                              className="bg-yellow-500 hover:bg-yellow-400 text-zinc-950 text-xs px-3 py-1.5 rounded-lg font-black transition-all cursor-pointer"
+                            >
+                              Guardar
+                            </button>
+                            <button
+                              onClick={() => setShowResetInput(false)}
+                              className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-xs px-2.5 py-1.5 rounded-lg transition-all cursor-pointer"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Kids Mode Selector */}
                   <div className="flex justify-center mb-6">
@@ -1110,6 +1409,63 @@ export default function App() {
           </motion.div>
         </div>
       )}
+
+      {/* Floating Network/Offline Sync Indicator */}
+      <AnimatePresence>
+        {(!isOnline || syncQueue.length > 0 || isSyncing || showSyncSuccess) && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            className="fixed bottom-4 right-4 z-[9999] flex flex-col items-end gap-2 pointer-events-none font-comic select-none"
+          >
+            {/* Sync Success Notification */}
+            {showSyncSuccess && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="bg-emerald-500 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold border border-emerald-400/30 font-comic"
+              >
+                <div className="w-2 h-2 rounded-full bg-white animate-ping" />
+                <span>¡Sincronizado con éxito! ✨</span>
+              </motion.div>
+            )}
+
+            {/* Main Connection Status / Save Queue Pill */}
+            {(!isOnline || syncQueue.length > 0 || isSyncing) && (
+              <div className="bg-zinc-900/90 backdrop-blur-md text-white px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-3 text-xs font-medium border border-white/10 max-w-xs sm:max-w-sm pointer-events-auto font-sans">
+                <div className="relative flex items-center justify-center">
+                  {isSyncing ? (
+                    <Loader2 className="w-4 h-4 text-sky-400 animate-spin" />
+                  ) : !isOnline ? (
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                  ) : (
+                    <div className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-bounce" />
+                  )}
+                </div>
+                
+                <div className="flex flex-col">
+                  <span className="font-comic font-black text-[11px] uppercase tracking-wider text-zinc-300">
+                    {isSyncing 
+                      ? "Actualizando datos" 
+                      : !isOnline 
+                        ? "Modo sin conexión" 
+                        : "Cambios pendientes"}
+                  </span>
+                  <span className="text-zinc-400 text-[10px] mt-0.5 font-sans leading-tight">
+                    {isSyncing 
+                      ? "Guardando tus juegos en la nube..." 
+                      : !isOnline 
+                        ? "Progreso guardado en el dispositivo." 
+                        : `${syncQueue.length} juego(s) pendiente(s) de sincronizar.`}
+                  </span>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style>{`
         .scrollbar-hide::-webkit-scrollbar {

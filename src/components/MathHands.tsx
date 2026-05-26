@@ -28,7 +28,7 @@ const Hand = ({ count, color, isLeft = true }: HandProps) => {
     <motion.div
       initial={{ y: 50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className={`relative w-14 h-14 min-[375px]:w-18 min-[375px]:h-18 xs:w-24 xs:h-24 sm:w-48 sm:h-48 md:w-52 md:h-52 landscape:w-[22vh] landscape:h-[22vh] ${!isLeft ? '-scale-x-100' : ''}`}
+      className={`relative w-20 h-20 min-[375px]:w-24 min-[375px]:h-24 xs:w-28 xs:h-28 sm:w-48 sm:h-48 md:w-52 md:h-52 landscape:w-[26vh] landscape:h-[26vh] ${!isLeft ? '-scale-x-100' : ''}`}
     >
       <svg viewBox="0 0 180 180" className="w-full h-full drop-shadow-2xl overflow-visible">
         <defs>
@@ -77,7 +77,7 @@ const Hand = ({ count, color, isLeft = true }: HandProps) => {
         key={`math-count-label-${isLeft ? 'left' : 'right'}-${count}`}
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
-        className={`absolute bottom-[14%] sm:bottom-[16%] left-1/2 -translate-x-1/2 bg-white text-zinc-900 font-bold text-xs min-[375px]:text-sm xs:text-2xl sm:text-3xl w-6 h-6 min-[375px]:w-8 min-[375px]:h-8 xs:w-10 xs:h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center border-2 xs:border-4 shadow-xl z-20 ${!isLeft ? '-scale-x-100' : ''}`}
+        className={`absolute bottom-[14%] sm:bottom-[16%] left-1/2 -translate-x-1/2 bg-white text-zinc-900 font-bold text-sm min-[375px]:text-base xs:text-2xl sm:text-3xl w-8 h-8 min-[375px]:w-10 min-[375px]:h-10 xs:w-12 xs:h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center border-2 xs:border-4 shadow-xl z-20 ${!isLeft ? '-scale-x-100' : ''}`}
         style={{ borderColor: color, color }}
       >
         {count}
@@ -166,27 +166,31 @@ export default function MathHands({ onComplete, isKidsMode }: MathHandsProps) {
 
       {/* The Equation */}
       <div className="flex-1 w-full max-w-5xl flex items-center justify-center py-4 sm:py-6 md:py-8 landscape:py-1">
-        <div className="flex flex-row items-center justify-center gap-1 min-[375px]:gap-2 xs:gap-5 sm:gap-8 md:gap-10 lg:gap-14 w-full">
+        <div className="flex flex-row items-center justify-center gap-1.5 min-[375px]:gap-2.5 xs:gap-5 sm:gap-8 md:gap-10 lg:gap-14 w-full">
           <Hand count={num1} color={randomColors[0]} />
           
           <motion.div 
             animate={status === 'playing' ? { scale: [1, 1.1, 1] } : {}}
             transition={{ repeat: Infinity, duration: 2 }}
-            className="bg-white/10 p-1 sm:p-4 rounded-xl sm:rounded-3xl border border-white/20 shadow-xl flex-shrink-0 flex items-center justify-center w-8 h-8 xs:w-12 xs:h-12 sm:w-20 sm:h-20"
+            className="bg-white/10 p-1 sm:p-4 rounded-xl sm:rounded-3xl border border-white/20 shadow-xl flex-shrink-0 flex items-center justify-center w-10 h-10 min-[375px]:w-12 min-[375px]:h-12 xs:w-16 xs:h-16 sm:w-20 sm:h-20"
           >
-            {op === '+' ? <Plus className="text-white w-4 h-4 xs:w-6 xs:h-6 sm:w-12 sm:h-12" /> : <Minus className="text-white w-4 h-4 xs:w-6 xs:h-6 sm:w-12 sm:h-12" />}
+            {op === '+' ? (
+              <Plus className="text-white w-5 h-5 min-[375px]:w-6 min-[375px]:h-6 xs:w-8 xs:h-8 sm:w-12 sm:h-12" />
+            ) : (
+              <Minus className="text-white w-5 h-5 min-[375px]:w-6 min-[375px]:h-6 xs:w-8 xs:h-8 sm:w-12 sm:h-12" />
+            )}
           </motion.div>
 
           <Hand count={num2} color={randomColors[1]} isLeft={false} />
 
-          <div className="bg-white/10 p-1 sm:p-4 rounded-xl sm:rounded-3xl border border-white/20 shadow-xl flex-shrink-0 flex items-center justify-center w-8 h-8 xs:w-12 xs:h-12 sm:w-20 sm:h-20">
-            <Equal className="text-white w-4 h-4 xs:w-6 xs:h-6 sm:w-12 sm:h-12" />
+          <div className="bg-white/10 p-1 sm:p-4 rounded-xl sm:rounded-3xl border border-white/20 shadow-xl flex-shrink-0 flex items-center justify-center w-10 h-10 min-[375px]:w-12 min-[375px]:h-12 xs:w-16 xs:h-16 sm:w-20 sm:h-20">
+            <Equal className="text-white w-5 h-5 min-[375px]:w-6 min-[375px]:h-6 xs:w-8 xs:h-8 sm:w-12 sm:h-12" />
           </div>
 
           {/* Answer Slot */}
           <motion.div 
             animate={status === 'wrong' ? { x: [-10, 10, -10, 10, 0] } : {}}
-            className={/* md:w-32 md:h-32 holds it nicely */ `w-12 h-12 min-[375px]:w-14 min-[375px]:h-14 xs:w-24 xs:h-24 sm:w-32 sm:h-32 rounded-xl sm:rounded-3xl border-2 sm:border-4 flex items-center justify-center bg-zinc-900/50 backdrop-blur-md shadow-2xl transition-all flex-shrink-0 ${
+            className={/* md:w-32 md:h-32 holds it nicely */ `w-16 h-16 min-[375px]:w-20 min-[375px]:h-20 xs:w-24 xs:h-24 sm:w-32 sm:h-32 rounded-xl sm:rounded-3xl border-2 sm:border-4 flex items-center justify-center bg-zinc-900/50 backdrop-blur-md shadow-2xl transition-all flex-shrink-0 ${
               status === 'correct' ? 'border-green-500 bg-green-500/20 scale-110 font-bold' : 
               status === 'wrong' ? 'border-red-500 bg-red-500/20' : 'border-white/30 border-dashed'
             }`}
@@ -194,15 +198,15 @@ export default function MathHands({ onComplete, isKidsMode }: MathHandsProps) {
             <AnimatePresence mode="wait">
               {status === 'correct' ? (
                 <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex flex-col items-center">
-                  <Check className="text-green-400 mb-0.5 w-4 h-4 xs:w-8 xs:h-8" />
+                  <Check className="text-green-400 mb-0.5 w-5 h-5 xs:w-8 xs:h-8" />
                   <span className="text-white font-bold text-sm xs:text-3xl sm:text-5xl drop-shadow-[0_2px_10px_rgba(255,255,255,0.5)]">{userAnswer}</span>
                 </motion.div>
               ) : status === 'wrong' ? (
                 <motion.div key="wrong" initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                  <X className="text-red-400 w-5 h-5 xs:w-10 xs:h-10" />
+                  <X className="text-red-400 w-6 h-6 xs:w-10 xs:h-10" />
                 </motion.div>
               ) : (
-                <motion.span key="question-mark" initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-zinc-500 text-lg xs:text-4xl sm:text-6xl font-black opacity-50">?</motion.span>
+                <motion.span key="question-mark" initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-zinc-500 text-2xl min-[375px]:text-3xl xs:text-4xl sm:text-6xl font-black opacity-50">?</motion.span>
               )}
             </AnimatePresence>
           </motion.div>

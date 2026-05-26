@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Dog, Cat, Fish, Bird, Bug, Rabbit, Snail, Turtle,
@@ -97,6 +97,7 @@ export default function MemoryGame({ onComplete, isKidsMode }: MemoryGameProps) 
   const [flippedIds, setFlippedIds] = useState<number[]>([]);
   const [disabled, setDisabled] = useState(false);
   const [isGameComplete, setIsGameComplete] = useState(false);
+  const hasCalledOnComplete = useRef(false);
 
   const initGame = useCallback((cat: Category) => {
     const config = CATEGORIES[cat];
@@ -259,7 +260,11 @@ export default function MemoryGame({ onComplete, isKidsMode }: MemoryGameProps) 
   };
 
   useEffect(() => {
-    if (cards.length > 0 && cards.every(c => c.isMatched)) {
+    const isMatchedAll = cards.length > 0 && cards.every(c => c.isMatched);
+    if (!isMatchedAll) {
+      hasCalledOnComplete.current = false;
+    } else if (isMatchedAll && !hasCalledOnComplete.current) {
+      hasCalledOnComplete.current = true;
       // Play general victory sound
       playSynthSound('victory');
       if (isKidsMode) {

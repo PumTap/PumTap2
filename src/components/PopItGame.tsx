@@ -78,6 +78,7 @@ export default function PopItGame({ onComplete, isKidsMode }: { onComplete?: () 
   const containerRef = useRef<HTMLDivElement>(null);
   const bubbleIdRef = useRef(0);
   const particleIdRef = useRef(0);
+  const hasCalledOnComplete = useRef(false);
 
   // Background Music Loop (Fun & Bouncy)
   useEffect(() => {
@@ -225,7 +226,10 @@ export default function PopItGame({ onComplete, isKidsMode }: { onComplete?: () 
 
   // Handle completion notification
   useEffect(() => {
-    if (status === 'nextLevel') {
+    if (status !== 'nextLevel') {
+      hasCalledOnComplete.current = false;
+    } else if (status === 'nextLevel' && !hasCalledOnComplete.current) {
+      hasCalledOnComplete.current = true;
       if (!isKidsMode) {
         onComplete?.();
       }
