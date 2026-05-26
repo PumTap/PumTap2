@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, ArrowRight, Mail, Lock, User, AlertCircle } from 'lucide-react';
 import logoUrl from '../assets/images/pumtap_logo_1779570363768.png';
@@ -17,6 +17,14 @@ export default function Auth({ onSuccess }: AuthProps) {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isFirstTime, setIsFirstTime] = useState(false);
+
+  useEffect(() => {
+    const hasVisited = localStorage.getItem('pumtap_has_visited');
+    if (!hasVisited) {
+      setIsFirstTime(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,6 +85,7 @@ export default function Auth({ onSuccess }: AuthProps) {
 
       // Save user session in localStorage to auto-restore on reload
       localStorage.setItem('magic_play_user_profile', JSON.stringify(data));
+      localStorage.setItem('pumtap_has_visited', 'true');
       onSuccess(data);
     } catch (err: any) {
       let msg = err.message || 'Ocurrió un error de conexión';
@@ -150,7 +159,7 @@ export default function Auth({ onSuccess }: AuthProps) {
             referrerPolicy="no-referrer"
           />
           <p className="text-zinc-400 font-comic mt-2 text-center text-sm relative z-10">
-            {isForgot ? 'Recuperar contraseña' : isLogin ? '¡Bienvenido de nuevo!' : 'Crea tu cuenta mágica'}
+            {isForgot ? 'Recuperar contraseña' : isLogin ? (isFirstTime ? '¡Hola, qué alegría tenerte aquí! Entra para jugar' : '¡Bienvenido de nuevo!') : 'Crea tu cuenta mágica'}
           </p>
         </div>
 
