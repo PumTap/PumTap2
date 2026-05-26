@@ -147,7 +147,7 @@ export default function MathHands({ onComplete, isKidsMode }: MathHandsProps) {
   const options = Array.from({ length: 11 }, (_, i) => i);
 
   return (
-    <div className="h-full w-full bg-zinc-950 flex flex-col items-center justify-between p-3 sm:p-6 landscape:py-1 landscape:px-6 relative overflow-hidden min-h-0">
+    <div className="h-full w-full bg-zinc-950 flex flex-col items-center justify-between pt-3 px-3 pb-24 sm:pt-6 sm:px-6 sm:pb-36 landscape:pt-1 landscape:pb-24 landscape:px-6 relative overflow-hidden min-h-0">
       {/* Background blobs for mood */}
       <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/10 blur-[100px] rounded-full" />
       <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/10 blur-[100px] rounded-full" />

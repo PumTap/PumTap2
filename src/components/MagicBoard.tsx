@@ -101,33 +101,125 @@ const STAMP_SIZES = {
   large: { scale: 1.5, label: 'Grande' },
 };
 
-function CursorFollower({ color, isEraser = false }: { color: string; isEraser?: boolean }) {
-  const [pos, setPos] = useState({ x: 0, y: 0 });
+interface CursorFollowerProps {
+  tool: 'brush' | 'stamp' | 'eraser';
+  color: string;
+  brushSizeValue: number;
+  selectedStamp: { id: string; icon: any; label: string; color: string };
+  stampScale: number;
+}
+
+function CursorFollower({ 
+  tool, 
+  color, 
+  brushSizeValue, 
+  selectedStamp, 
+  stampScale 
+}: CursorFollowerProps) {
+  const [pos, setPos] = useState({ x: -100, y: -100 });
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const handleMove = (e: MouseEvent) => setPos({ x: e.clientX, y: e.clientY });
+    const handleMove = (e: MouseEvent) => {
+      setPos({ x: e.clientX, y: e.clientY });
+      setIsVisible(true);
+    };
+    const handleLeave = () => {
+      setIsVisible(false);
+    };
+    const handleEnter = () => {
+      setIsVisible(true);
+    };
+
     window.addEventListener('mousemove', handleMove);
-    return () => window.removeEventListener('mousemove', handleMove);
+    document.addEventListener('mouseleave', handleLeave);
+    document.addEventListener('mouseenter', handleEnter);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseleave', handleLeave);
+      document.removeEventListener('mouseenter', handleEnter);
+    };
   }, []);
+
+  if (!isVisible) return null;
+
+  const stampSize = 100 * stampScale;
+  const sizeOffset = tool === 'stamp' ? stampSize : brushSizeValue;
+  const halfSize = sizeOffset / 2;
 
   return (
     <motion.div 
-      className={`fixed pointer-events-none z-50 ${isEraser ? '' : 'mix-blend-screen'}`}
-      animate={{ x: pos.x - 20, y: pos.y - 20 }}
-      transition={{ type: 'spring', damping: 20, stiffness: 300, mass: 0.5 }}
+      className="fixed pointer-events-none z-50 mix-blend-screen"
+      style={{
+        left: 0,
+        top: 0,
+      }}
+      animate={{ x: pos.x - halfSize, y: pos.y - halfSize }}
+      transition={{ type: 'spring', damping: 25, stiffness: 350, mass: 0.4 }}
     >
-      <div className="relative">
-        {isEraser ? (
-          <Eraser className="text-pink-400 drop-shadow-[0_0_8px_rgba(244,114,182,0.6)]" size={32} />
-        ) : (
-          <Sparkles className="text-white" size={40} style={{ filter: `drop-shadow(0 0 10px ${color})`, color }} />
-        )}
-        <motion.div 
-          animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 1, repeat: Infinity }}
-          className="absolute inset-0 bg-white/20 blur-xl rounded-full"
-        />
-      </div>
+      {tool === 'eraser' && (
+        <div 
+          className="rounded-full border-2 border-dashed border-pink-400/80 flex items-center justify-center relative"
+          style={{ 
+            width: Math.max(16, brushSizeValue), 
+            height: Math.max(16, brushSizeValue), 
+            boxShadow: `0 0 12px rgba(244,114,182,0.6)`,
+            backgroundColor: 'rgba(244,114,182,0.15)'
+          }}
+        >
+          <Eraser className="text-pink-400 absolute" size={Math.min(24, Math.max(12, brushSizeValue))} style={{ filter: `drop-shadow(0 0 4px #ff79c6)` }} />
+        </div>
+      )}
+
+      {tool === 'brush' && (
+        <div 
+          className="rounded-full border-2 border-dashed flex items-center justify-center relative"
+          style={{ 
+            width: Math.max(12, brushSizeValue), 
+            height: Math.max(12, brushSizeValue), 
+            borderColor: color, 
+            boxShadow: `0 0 14px ${color}`,
+            backgroundColor: `${color}1d`
+          }}
+        >
+          <Sparkles className="text-white absolute animate-pulse" size={Math.min(16, Math.max(10, brushSizeValue - 4))} style={{ filter: `drop-shadow(0 0 4px ${color})`, color }} />
+        </div>
+      )}
+
+      {tool === 'stamp' && selectedStamp && (
+        (() => {
+          const StampIcon = selectedStamp.icon;
+          return (
+            <div 
+              className="relative flex items-center justify-center"
+              style={{ 
+                width: stampSize, 
+                height: stampSize,
+              }}
+            >
+              <StampIcon 
+                size={stampSize} 
+                className="animate-pulse"
+                style={{ 
+                  color: selectedStamp.color, 
+                  filter: `drop-shadow(0 0 15px ${selectedStamp.color})`,
+                  opacity: 0.75
+                }} 
+              />
+              <div 
+                className="absolute rounded-full border-2 border-dashed opacity-40 animate-pulse"
+                style={{ 
+                  width: stampSize + 16, 
+                  height: stampSize + 16, 
+                  borderColor: selectedStamp.color,
+                  boxShadow: `0 0 10px ${selectedStamp.color}`
+                }}
+              />
+            </div>
+          );
+        })()
+      )}
     </motion.div>
   );
 }
@@ -826,7 +918,7 @@ export default function MagicBoard() {
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
-        style={{ cursor: tool === 'stamp' ? 'copy' : 'none' }}
+        style={{ cursor: 'none' }}
       >
         <canvas
           ref={canvasRef}
@@ -849,10 +941,13 @@ export default function MagicBoard() {
             }}
           />
         ))}
-        {(tool === 'brush' || tool === 'eraser') && (
+        {tool && (
           <CursorFollower 
+            tool={tool}
             color={isRainbow || isMagic ? `hsl(${hue}, 100%, 70%)` : currentColor} 
-            isEraser={tool === 'eraser'}
+            brushSizeValue={SIZES[currentSize].value}
+            selectedStamp={selectedStamp}
+            stampScale={STAMP_SIZES[currentSize].scale}
           />
         )}
       </div>
