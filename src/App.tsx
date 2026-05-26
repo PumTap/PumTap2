@@ -53,6 +53,7 @@ interface UserProfile {
   hasSeenTutorial: boolean;
   isPremium: boolean;
   pointsLimit?: number;
+  pointsPerGame?: Record<string, number>;
 }
 
 interface SyncItem {
@@ -81,7 +82,7 @@ const GAMES = [
 ];
 
 export default function App() {
-  const [activeGame, setActiveGame] = useState<'home' | 'magicboard' | 'mathhands' | 'memory' | 'balloons' | 'face' | 'piano' | 'coloring' | 'shapes' | 'numbers' | 'popit' | 'drawshapes' | 'clock'>('home');
+  const [activeGame, setActiveGame] = useState<'home' | 'magicboard' | 'mathhands' | 'memory' | 'balloons' | 'face' | 'piano' | 'coloring' | 'shapes' | 'numbers' | 'popit' | 'drawshapes' | 'clock' | 'ranking' | 'profile'>('home');
   const [isKidsMode, setIsKidsMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
@@ -95,6 +96,46 @@ export default function App() {
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [showResetInput, setShowResetInput] = useState(false);
   const [customPointsVal, setCustomPointsVal] = useState('100');
+  
+  // States for general leaderboard & user statistics
+  const [ranking, setRanking] = useState<{ uid: string; name: string; points: number; isPremium: boolean }[]>([]);
+  const [rankingLoading, setRankingLoading] = useState(false);
+  const [rankingError, setRankingError] = useState<string | null>(null);
+
+  const fetchRanking = async () => {
+    setRankingLoading(true);
+    setRankingError(null);
+    try {
+      const res = await fetch('/api/user/ranking');
+      if (!res.ok) {
+        let msg = 'Error al obtener la tabla de clasificación';
+        try {
+          const errData = await res.json();
+          if (errData && errData.error) {
+            msg = errData.error;
+          }
+        } catch (_) {}
+        throw new Error(msg);
+      }
+      const data = await res.json();
+      if (data.success) {
+        setRanking(data.ranking);
+      } else {
+        throw new Error(data.error || 'Error desconocido');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setRankingError(err.message || 'Error de conexión');
+    } finally {
+      setRankingLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeGame === 'ranking') {
+      fetchRanking();
+    }
+  }, [activeGame]);
   
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -438,18 +479,34 @@ export default function App() {
     if (!userProfile) return;
     const newPoints = (userProfile.points || 0) + amount;
     
-    // Optimistic UI updates for stellar gameplay fluid response
-    setUserProfile(prev => prev ? { ...prev, points: newPoints } : null);
+    // Accumulate points per game
+    const currentGameId = activeGame;
+    const currentPointsPerGame = userProfile.pointsPerGame || {};
+    const updatedPointsPerGame = {
+      ...currentPointsPerGame,
+      [currentGameId]: (currentPointsPerGame[currentGameId] || 0) + amount
+    };
+    
+    // Optimistic UI updates including points breakdown per game
+    const updated: UserProfile = { 
+      ...userProfile, 
+      points: newPoints,
+      pointsPerGame: updatedPointsPerGame
+    };
+    setUserProfile(updated);
 
     // Save locally immediately so return/close preserves progress
-    const updated = { ...userProfile, points: newPoints };
     localStorage.setItem('magic_play_user_profile', JSON.stringify(updated));
 
     try {
       const response = await fetch('/api/user/update-points', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid: userProfile.uid, points: newPoints })
+        body: JSON.stringify({ 
+          uid: userProfile.uid, 
+          points: newPoints,
+          pointsPerGame: updatedPointsPerGame
+        })
       });
       if (!response.ok) {
         throw new Error('Server error updating points');
@@ -468,7 +525,23 @@ export default function App() {
         timestamp: Date.now()
       });
     }
-  }, [userProfile, isKidsMode, addToSyncQueue]);
+  }, [userProfile, isKidsMode, addToSyncQueue, activeGame]);
+
+  const getFavoriteGame = () => {
+    if (!userProfile || !userProfile.pointsPerGame) return null;
+    const ppg = userProfile.pointsPerGame;
+    let maxPts = 0;
+    let favId: string | null = null;
+    Object.entries(ppg).forEach(([gameId, pts]) => {
+      const score = Number(pts) || 0;
+      if (score > maxPts) {
+        maxPts = score;
+        favId = gameId;
+      }
+    });
+    if (!favId) return null;
+    return GAMES.find(g => g.id === favId) || null;
+  };
 
   const handleResetPoints = async (pointsNum: number) => {
     if (!userProfile) return;
@@ -771,21 +844,9 @@ export default function App() {
       {/* SUPERIOR BAR - GAME LAUNCHER */}
       <header className="h-12 sm:h-14 bg-zinc-900/40 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-2 sm:px-4 z-50 relative">
         <div className="flex items-center gap-2">
-          <button 
-            onClick={() => !isLocked && setActiveGame('home')}
-            disabled={isLocked}
-            className={`p-1 sm:p-1.5 rounded-lg shadow-lg border border-white/5 transition-all ${
-              isLocked 
-                ? 'opacity-30 cursor-not-allowed bg-zinc-900/50 text-zinc-650' 
-                : 'bg-zinc-800/50 hover:scale-110 active:scale-95 text-white'
-            }`}
-          >
-            <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 fill-yellow-400 animate-pulse" />
-          </button>
-          
-          <div className="hidden xl:flex flex-col ml-2">
+          <div className="flex flex-col ml-1">
             <span className="text-zinc-500 text-[7px] uppercase font-black tracking-widest leading-none mb-0.5">Jugador</span>
-            <span className="text-white font-black text-[10px]">{userProfile.name}</span>
+            <span className="text-white font-black text-xs">{userProfile.name}</span>
           </div>
         </div>
 
@@ -1211,8 +1272,283 @@ export default function App() {
               </div>
             </motion.div>
           )}
+
+          {activeGame === 'ranking' && (
+            <motion.div
+              key="ranking"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -30 }}
+              className="absolute inset-0 overflow-y-auto p-4 sm:p-8 flex flex-col items-center bg-zinc-950 font-comic"
+            >
+              <div className="w-full max-w-2xl bg-zinc-900/60 backdrop-blur-md border border-white/10 rounded-[2rem] p-6 sm:p-8 shadow-2xl">
+                {/* Header of Ranking */}
+                <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-yellow-500/10 text-yellow-500 rounded-2xl border border-yellow-500/20 shadow-lg">
+                      <Trophy size={28} className="animate-bounce" />
+                    </div>
+                    <div className="text-left">
+                      <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">Clasificación Global</h2>
+                      <p className="text-zinc-500 text-xs">¡Compite con otros jugadores de PumTap y gana estrellas!</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={fetchRanking}
+                    disabled={rankingLoading}
+                    className="p-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-xl transition-all cursor-pointer disabled:opacity-50"
+                    title="Actualizar ranking"
+                  >
+                    <RefreshCw size={18} className={rankingLoading ? "animate-spin" : ""} />
+                  </button>
+                </div>
+
+                {/* Main Content */}
+                {rankingLoading ? (
+                  <div className="flex flex-col items-center justify-center py-16 gap-3">
+                    <Loader2 className="w-10 h-10 text-yellow-500 animate-spin" />
+                    <span className="text-zinc-400 text-sm">Cargando la clasificación de estrellas...</span>
+                  </div>
+                ) : rankingError ? (
+                  <div className="text-center py-12">
+                    <p className="text-red-400 text-sm mb-4">⚠️ {rankingError}</p>
+                    <button 
+                      onClick={fetchRanking}
+                      className="px-6 py-2 bg-yellow-500 text-zinc-950 rounded-xl font-bold hover:bg-yellow-400 transition-all cursor-pointer text-xs"
+                    >
+                      Reintentar
+                    </button>
+                  </div>
+                ) : ranking.length === 0 ? (
+                  <div className="text-center py-12 text-zinc-500">
+                    No hay registros de jugadores todavía. ¡Sé el primero en el ranking!
+                  </div>
+                ) : (
+                  <div className="space-y-2.5 max-h-[48vh] overflow-y-auto pr-1 scrollbar-hide">
+                    {ranking.map((player, index) => {
+                      const isMe = player.uid === userProfile?.uid;
+                      const isTop3 = index < 3;
+                      const medalColors = ["text-yellow-400", "text-zinc-305", "text-amber-500"];
+                      const pMedalBg = ["bg-yellow-500/10 border-yellow-500/25", "bg-zinc-400/10 border-zinc-400/25", "bg-amber-600/10 border-amber-600/25"];
+
+                      return (
+                        <div 
+                          key={player.uid}
+                          className={`flex items-center justify-between p-3.5 sm:p-4 rounded-2xl transition-all border ${
+                            isMe 
+                              ? 'bg-yellow-500/10 border-yellow-500/40 shadow-lg shadow-yellow-500/5 ring-1 ring-yellow-500/20' 
+                              : 'bg-zinc-950/40 border-white/5 hover:border-white/10 hover:bg-zinc-950/60'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 sm:gap-4">
+                            {/* Rank Position */}
+                            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-base border ${
+                              isTop3 
+                                ? `${pMedalBg[index]} ${medalColors[index]}` 
+                                : 'bg-zinc-900 border-transparent text-zinc-400'
+                            }`}>
+                              {index + 1}
+                            </div>
+                            
+                            {/* Player Name */}
+                            <div className="flex flex-col text-left">
+                              <span className={`font-bold text-sm sm:text-base flex items-center gap-1.5 ${isMe ? 'text-yellow-400 font-black' : 'text-white'}`}>
+                                {player.name}
+                                {isMe && <span className="text-[10px] bg-yellow-500/20 text-yellow-500 px-1.5 py-0.5 rounded-full uppercase font-black tracking-wider font-sans">Tú</span>}
+                                {player.isPremium && <span className="text-[10px] bg-pink-500/20 text-pink-500 px-1.5 py-0.5 rounded-full uppercase font-black tracking-wider font-sans">PRO</span>}
+                              </span>
+                              <span className="text-[10px] sm:text-xs text-zinc-500 font-sans">
+                                {isMe ? userProfile?.email : 'Jugador verificado'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Points Display */}
+                          <div className="flex items-center gap-1.5 bg-black/30 px-3 py-1.5 rounded-xl border border-white/5">
+                            <Coins className="text-yellow-500 w-4 h-4" />
+                            <span className="text-white font-black text-xs sm:text-sm">{player.points}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {activeGame === 'profile' && (() => {
+            const favGame = getFavoriteGame();
+            
+            return (
+              <motion.div
+                key="profile"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.05 }}
+                className="absolute inset-0 overflow-y-auto p-4 sm:p-8 flex flex-col items-center bg-zinc-950 font-comic"
+              >
+                <div className="w-full max-w-2xl bg-zinc-900/60 backdrop-blur-md border border-white/10 rounded-[2rem] p-6 sm:p-8 shadow-2xl flex flex-col gap-6">
+                  {/* Profile Header */}
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 pb-6 border-b border-white/5">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-tr from-pink-500 to-indigo-500 rounded-full flex items-center justify-center border-2 border-white/10 shadow-xl relative flex-shrink-0">
+                      <Smile size={40} className="text-white animate-pulse" />
+                      {userProfile?.isPremium && (
+                        <span className="absolute -bottom-1 -right-1 bg-yellow-500 text-zinc-950 text-[10px] font-black px-2 py-0.5 rounded-full border border-zinc-900 font-sans shadow-md">
+                          PRO
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 flex flex-col">
+                      <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight mb-1">{userProfile?.name}</h2>
+                      <span className="text-zinc-400 text-xs sm:text-sm font-sans mb-3">{userProfile?.email}</span>
+                      
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider bg-zinc-850 text-zinc-450 px-2.5 py-1 rounded-xl">
+                          ID: {userProfile?.uid.substring(0, 8)}...
+                        </span>
+                        {userProfile?.isPremium ? (
+                          <span className="text-[10px] font-black uppercase tracking-wider bg-pink-500/10 text-pink-400 px-2.5 py-1 rounded-xl border border-pink-500/20">
+                            Premium Modo Infantil Activo 👶✨
+                          </span>
+                        ) : (
+                          <button 
+                            onClick={() => setShowPremiumModal(true)}
+                            className="text-[10px] font-black uppercase tracking-wider bg-yellow-500 text-zinc-950 px-2.5 py-1 rounded-xl hover:bg-yellow-405 transition-all cursor-pointer"
+                          >
+                            🔓 Obtener Premium
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stats Cards Section */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Stat Card 1: Total Points */}
+                    <div className="bg-zinc-950/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between text-left">
+                      <span className="text-zinc-500 text-[11px] uppercase font-black tracking-widest leading-none mb-1">Puntos Totales</span>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Coins className="text-yellow-500 w-6 h-6 sm:w-8 sm:h-8" />
+                        <span className="text-2xl sm:text-3xl font-black text-white">{userProfile?.points}</span>
+                      </div>
+                      <span className="text-[10px] sm:text-xs text-zinc-400 mt-2 font-sans leading-relaxed">
+                        Completa más retos de juego para seguir sumando puestos en la tabla de clasificación.
+                      </span>
+                    </div>
+
+                    {/* Stat Card 2: Favorite Game */}
+                    <div className="bg-zinc-950/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between text-left">
+                      <span className="text-zinc-500 text-[11px] uppercase font-black tracking-widest leading-none mb-1">Juego Favorito</span>
+                      {favGame ? (
+                        <div className="flex items-center gap-3 mt-2">
+                          <div className={`p-2 rounded-xl bg-gradient-to-br ${favGame.color} shadow-lg text-white flex-shrink-0`}>
+                            <favGame.icon size={22} />
+                          </div>
+                          <div className="flex flex-col text-left">
+                            <span className="text-base font-bold text-white uppercase tracking-wider">{favGame.label}</span>
+                            <span className="text-[11px] text-zinc-400">{(userProfile?.pointsPerGame?.[favGame.id] || 0)} puntos logrados</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-zinc-500 font-sans mt-3">¡Aún sin juego preferido! Juega y gana puntos para desbloquearlo.</span>
+                      )}
+                      <span className="text-[10px] sm:text-xs text-zinc-400 mt-2 font-sans leading-relaxed">
+                        Se calcula automáticamente basado en la cantidad de puntos que has logrado acumular.
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Score Breakdown Section */}
+                  <div className="text-left">
+                    <h3 className="text-sm sm:text-base font-black text-zinc-300 uppercase tracking-widest mb-3.5 font-comic flex items-center gap-2">
+                      <Trophy size={16} className="text-yellow-500" />
+                      Puntos por juego
+                    </h3>
+                    
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[19vh] overflow-y-auto pr-1">
+                      {GAMES.map((game) => {
+                        const score = userProfile?.pointsPerGame?.[game.id] || 0;
+                        return (
+                          <div 
+                            key={game.id}
+                            className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
+                              score > 0 
+                                ? 'bg-zinc-900/40 border-white/5 hover:border-white/10' 
+                                : 'bg-zinc-950/20 border-white/5 opacity-40'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 text-left">
+                              <div className={`p-1.5 rounded-lg bg-gradient-to-br ${game.color} text-white scale-90 flex-shrink-0`}>
+                                <game.icon size={13} />
+                              </div>
+                              <span className="text-[10px] sm:text-xs font-bold text-white tracking-wide uppercase">{game.label}</span>
+                            </div>
+                            <span className="font-extrabold text-[11px] sm:text-xs text-yellow-550 bg-yellow-500/5 px-2 py-0.5 rounded-lg border border-yellow-500/10 text-right">{score}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })()}
         </AnimatePresence>
       </main>
+
+      {/* BOTTOM NAVIGATION BAR - APP SHORTCUTS */}
+      <footer className="h-14 sm:h-16 bg-zinc-900/60 backdrop-blur-md border-t border-white/5 flex items-center justify-around px-2 sm:px-6 z-40 relative">
+        <button
+          onClick={() => setActiveGame('home')}
+          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all font-comic active:scale-95 cursor-pointer ${
+            activeGame === 'home' 
+              ? 'text-yellow-400 font-black scale-105' 
+              : 'text-zinc-400 hover:text-white'
+          }`}
+        >
+          <Star className={`w-4 h-4 sm:w-5 sm:h-5 ${activeGame === 'home' ? 'fill-yellow-405 text-yellow-405 animate-pulse' : ''}`} />
+          <span className="text-[9px] sm:text-[10px] mt-1 uppercase tracking-wider font-bold">Inicio</span>
+        </button>
+
+        <button
+          onClick={() => setActiveGame('ranking')}
+          disabled={isKidsMode || isLocked}
+          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all font-comic ${
+            isKidsMode || isLocked
+              ? 'opacity-40 cursor-not-allowed text-zinc-500'
+              : 'active:scale-95 cursor-pointer ' + (activeGame === 'ranking' 
+                ? 'text-yellow-400 font-black scale-105' 
+                : 'text-zinc-400 hover:text-white')
+          }`}
+        >
+          {isKidsMode || isLocked ? (
+            <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-500" />
+          ) : (
+            <Trophy className={`w-4 h-4 sm:w-5 sm:h-5 ${activeGame === 'ranking' ? 'text-yellow-405 animate-bounce' : ''}`} />
+          )}
+          <span className="text-[9px] sm:text-[10px] mt-1 uppercase tracking-wider font-bold">Ranking</span>
+        </button>
+
+        <button
+          onClick={() => setActiveGame('profile')}
+          disabled={isKidsMode || isLocked}
+          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all font-comic ${
+            isKidsMode || isLocked
+              ? 'opacity-40 cursor-not-allowed text-zinc-500'
+              : 'active:scale-95 cursor-pointer ' + (activeGame === 'profile' 
+                ? 'text-yellow-400 font-black scale-105' 
+                : 'text-zinc-400 hover:text-white')
+          }`}
+        >
+          {isKidsMode || isLocked ? (
+            <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-500" />
+          ) : (
+            <Smile className={`w-4 h-4 sm:w-5 sm:h-5 ${activeGame === 'profile' ? 'text-yellow-405 animate-pulse' : ''}`} />
+          )}
+          <span className="text-[9px] sm:text-[10px] mt-1 uppercase tracking-wider font-bold">Mi Perfil</span>
+        </button>
+      </footer>
 
       {/* Stripe Verification Overlay */}
       {stripeVerifying && (

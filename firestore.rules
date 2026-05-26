@@ -30,7 +30,7 @@ service cloud.firestore {
     // --- Validation Blueprints ---
     function isValidUser(data) {
       return data.keys().hasAll(['name', 'email', 'hasSeenTutorial', 'points', 'isPremium', 'createdAt', 'pointsLimit']) &&
-             (data.keys().size() == 7 || (data.keys().size() == 8 && data.keys().hasAll(['processedSessions']))) &&
+             data.keys().size() <= 9 &&
              data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
              data.email is string && data.email.size() > 0 && data.email.size() <= 200 &&
              data.hasSeenTutorial is bool &&
@@ -38,12 +38,14 @@ service cloud.firestore {
              data.isPremium is bool &&
              data.pointsLimit is number && data.pointsLimit >= 2000 &&
              data.createdAt is timestamp &&
-             (!data.keys().hasAny(['processedSessions']) || (data.processedSessions is list && data.processedSessions.size() <= 100));
+             (!data.keys().hasAny(['processedSessions']) || (data.processedSessions is list && data.processedSessions.size() <= 100)) &&
+             (!data.keys().hasAny(['pointsPerGame']) || data.pointsPerGame is map);
     }
 
     // --- User Rules ---
     match /users/{userId} {
       allow get: if isValidId(userId);
+      allow list: if true;
       
       allow create: if isValidId(userId) && 
                       isValidUser(incoming()) && 
@@ -55,9 +57,10 @@ service cloud.firestore {
 
       allow update: if isValidId(userId) &&
                       (
-                        // Action: Update points
-                        (incoming().diff(existing()).affectedKeys().hasOnly(['points']) && 
-                         incoming().points is number && incoming().points >= 0) ||
+                        // Action: Update points & pointsPerGame
+                        (incoming().diff(existing()).affectedKeys().hasOnly(['points', 'pointsPerGame']) && 
+                         incoming().points is number && incoming().points >= 0 &&
+                         (!incoming().keys().hasAny(['pointsPerGame']) || incoming().pointsPerGame is map)) ||
                         // Action: Mark tutorial as seen
                         (incoming().diff(existing()).affectedKeys().hasOnly(['hasSeenTutorial']) && 
                          incoming().hasSeenTutorial == true) ||

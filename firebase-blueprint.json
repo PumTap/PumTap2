@@ -33,6 +33,10 @@
           "type": "array",
           "description": "Processed Stripe session IDs"
         },
+        "pointsPerGame": {
+          "type": "object",
+          "description": "Breakdown of points earned in each game mode"
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",

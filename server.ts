@@ -26,7 +26,12 @@ import {
   setDoc, 
   updateDoc,
   serverTimestamp,
-  setLogLevel
+  setLogLevel,
+  collection,
+  getDocs,
+  query,
+  orderBy,
+  limit
 } from 'firebase/firestore';
 
 setLogLevel('error');
@@ -262,15 +267,53 @@ async function startServer() {
 
   // Update points
   app.post('/api/user/update-points', async (req, res) => {
-    const { uid, points } = req.body;
+    const { uid, points, pointsPerGame } = req.body;
     if (!uid || typeof points !== 'number') {
       return res.status(400).json({ error: 'UID y puntos requeridos' });
     }
     try {
       const userRef = doc(db, 'users', uid);
-      await updateDoc(userRef, { points });
-      res.json({ success: true, points });
+      const updateData: any = { points };
+      if (pointsPerGame) {
+        updateData.pointsPerGame = pointsPerGame;
+      }
+      await updateDoc(userRef, updateData);
+      res.json({ success: true, points, pointsPerGame });
     } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get users ranking
+  app.get('/api/user/ranking', async (req, res) => {
+    try {
+      const usersRef = collection(db, 'users');
+      let querySnapshot;
+      try {
+        const q = query(usersRef, orderBy('points', 'desc'), limit(50));
+        querySnapshot = await getDocs(q);
+      } catch (err) {
+        console.warn('Query sorted failed, falling back to unsorted fetch:', err);
+        querySnapshot = await getDocs(usersRef);
+      }
+
+      const ranking: any[] = [];
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        ranking.push({
+          uid: docSnap.id,
+          name: data.name || 'Jugador Anónimo',
+          points: data.points || 0,
+          isPremium: !!data.isPremium
+        });
+      });
+
+      // Ensure stable sorting descending
+      ranking.sort((a, b) => b.points - a.points);
+      
+      res.json({ success: true, ranking: ranking.slice(0, 50) });
+    } catch (error: any) {
+      console.error('Error fetching ranking:', error);
       res.status(400).json({ error: error.message });
     }
   });
