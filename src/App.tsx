@@ -1798,85 +1798,87 @@ export default function App() {
       </main>
 
       {/* BOTTOM NAVIGATION BAR - APP SHORTCUTS */}
-      <footer className="h-14 sm:h-16 bg-zinc-900/60 backdrop-blur-md border-t border-white/5 flex items-center justify-around px-2 sm:px-6 z-40 relative">
-        <button
-          onClick={() => {
-            setActiveGame('home');
-            speakText("Yendo a pantalla de inicio");
-          }}
-          onMouseEnter={() => speakText("Sección Inicio")}
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all font-comic active:scale-95 cursor-pointer ${
-            activeGame === 'home' 
-              ? 'text-yellow-400 font-black scale-105' 
-              : 'text-zinc-400 hover:text-white'
-          }`}
-        >
-          <Star className={`w-4 h-4 sm:w-5 sm:h-5 ${activeGame === 'home' ? 'fill-yellow-405 text-yellow-405 animate-pulse' : ''}`} />
-          <span className="text-[9px] sm:text-[10px] mt-1 uppercase tracking-wider font-bold">Inicio</span>
-        </button>
-
-        <button
-          onClick={() => {
-            if (!isKidsMode && !isLocked) {
-              setActiveGame('ranking');
-              speakText("Abriendo tabla de ranking");
-            }
-          }}
-          onMouseEnter={() => {
-            if (isKidsMode || isLocked) {
-              speakText("Ranking bloqueado temporalmente");
-            } else {
-              speakText("Tabla de Clasificación y Ranking");
-            }
-          }}
-          disabled={isKidsMode || isLocked}
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all font-comic ${
-            isKidsMode || isLocked
-              ? 'opacity-40 cursor-not-allowed text-zinc-500'
-              : 'active:scale-95 cursor-pointer ' + (activeGame === 'ranking' 
+      {activeGame !== 'home' && (
+        <footer className="h-14 sm:h-16 bg-zinc-900/60 backdrop-blur-md border-t border-white/5 flex items-center justify-around px-2 sm:px-6 z-40 relative">
+          <button
+            onClick={() => {
+              setActiveGame('home');
+              speakText("Yendo a pantalla de inicio");
+            }}
+            onMouseEnter={() => speakText("Sección Inicio")}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all font-comic active:scale-95 cursor-pointer ${
+              activeGame === 'home' 
                 ? 'text-yellow-400 font-black scale-105' 
-                : 'text-zinc-400 hover:text-white')
-          }`}
-        >
-          {isKidsMode || isLocked ? (
-            <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-500" />
-          ) : (
-            <Trophy className={`w-4 h-4 sm:w-5 sm:h-5 ${activeGame === 'ranking' ? 'text-yellow-405 animate-bounce' : ''}`} />
-          )}
-          <span className="text-[9px] sm:text-[10px] mt-1 uppercase tracking-wider font-bold">Ranking</span>
-        </button>
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Star className={`w-4 h-4 sm:w-5 sm:h-5 ${activeGame === 'home' ? 'fill-yellow-405 text-yellow-405 animate-pulse' : ''}`} />
+            <span className="text-[9px] sm:text-[10px] mt-1 uppercase tracking-wider font-bold">Inicio</span>
+          </button>
 
-        <button
-          onClick={() => {
-            if (!isKidsMode && !isLocked) {
-              setActiveGame('profile');
-              speakText("Abriendo mi perfil de jugador y accesibilidad");
-            }
-          }}
-          onMouseEnter={() => {
-            if (isKidsMode || isLocked) {
-              speakText("Perfil bloqueado temporalmente");
-            } else {
-              speakText("Mi perfil y ajustes de accesibilidad");
-            }
-          }}
-          disabled={isKidsMode || isLocked}
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all font-comic ${
-            isKidsMode || isLocked
-              ? 'opacity-40 cursor-not-allowed text-zinc-500'
-              : 'active:scale-95 cursor-pointer ' + (activeGame === 'profile' 
-                ? 'text-yellow-400 font-black scale-105' 
-                : 'text-zinc-400 hover:text-white')
-          }`}
-        >
-          {isKidsMode || isLocked ? (
-            <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-500" />
-          ) : (
-            <Smile className={`w-4 h-4 sm:w-5 sm:h-5 ${activeGame === 'profile' ? 'text-yellow-405 animate-pulse' : ''}`} />
-          )}
-          <span className="text-[9px] sm:text-[10px] mt-1 uppercase tracking-wider font-bold">Mi Perfil</span>
-        </button>
-      </footer>
+          <button
+            onClick={() => {
+              if (!isKidsMode && !isLocked) {
+                setActiveGame('ranking');
+                speakText("Abriendo tabla de ranking");
+              }
+            }}
+            onMouseEnter={() => {
+              if (isKidsMode || isLocked) {
+                speakText("Ranking bloqueado temporalmente");
+              } else {
+                speakText("Tabla de Clasificación y Ranking");
+              }
+            }}
+            disabled={isKidsMode || isLocked}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all font-comic ${
+              isKidsMode || isLocked
+                ? 'opacity-40 cursor-not-allowed text-zinc-500'
+                : 'active:scale-95 cursor-pointer ' + (activeGame === 'ranking' 
+                  ? 'text-yellow-400 font-black scale-105' 
+                  : 'text-zinc-400 hover:text-white')
+            }`}
+          >
+            {isKidsMode || isLocked ? (
+              <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-500" />
+            ) : (
+              <Trophy className={`w-4 h-4 sm:w-5 sm:h-5 ${activeGame === 'ranking' ? 'text-yellow-405 animate-bounce' : ''}`} />
+            )}
+            <span className="text-[9px] sm:text-[10px] mt-1 uppercase tracking-wider font-bold">Ranking</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (!isKidsMode && !isLocked) {
+                setActiveGame('profile');
+                speakText("Abriendo mi perfil de jugador y accesibilidad");
+              }
+            }}
+            onMouseEnter={() => {
+              if (isKidsMode || isLocked) {
+                speakText("Perfil bloqueado temporalmente");
+              } else {
+                speakText("Mi perfil y ajustes de accesibilidad");
+              }
+            }}
+            disabled={isKidsMode || isLocked}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all font-comic ${
+              isKidsMode || isLocked
+                ? 'opacity-40 cursor-not-allowed text-zinc-500'
+                : 'active:scale-95 cursor-pointer ' + (activeGame === 'profile' 
+                  ? 'text-yellow-400 font-black scale-105' 
+                  : 'text-zinc-400 hover:text-white')
+            }`}
+          >
+            {isKidsMode || isLocked ? (
+              <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-500" />
+            ) : (
+              <Smile className={`w-4 h-4 sm:w-5 sm:h-5 ${activeGame === 'profile' ? 'text-yellow-405 animate-pulse' : ''}`} />
+            )}
+            <span className="text-[9px] sm:text-[10px] mt-1 uppercase tracking-wider font-bold">Mi Perfil</span>
+          </button>
+        </footer>
+      )}
 
       {/* Stripe Verification Overlay */}
       {stripeVerifying && (
