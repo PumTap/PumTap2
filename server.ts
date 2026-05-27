@@ -504,6 +504,24 @@ async function startServer() {
     }
   });
 
+  // --- STATIC BRAND ASSET FALLBACKS (FAVICONS / SOCIAL SHARE IMAGES) ---
+  const serveBrandLogo = (req: any, res: any) => {
+    const localPath = path.join(process.cwd(), 'src/assets/images/pumtap_logo_1779570363768.png');
+    const builtPath = path.join(process.cwd(), 'dist/favicon.png');
+    if (fs.existsSync(localPath)) {
+      res.sendFile(localPath);
+    } else if (fs.existsSync(builtPath)) {
+      res.sendFile(builtPath);
+    } else {
+      res.status(404).send('Logo not found');
+    }
+  };
+
+  app.get('/favicon.ico', serveBrandLogo);
+  app.get('/favicon.png', serveBrandLogo);
+  app.get('/pumtap_og_image.png', serveBrandLogo);
+  app.get('/apple-touch-icon.png', serveBrandLogo);
+
   // --- VITE MIDDLEWARE ---
   const isProduction = process.env.NODE_ENV === 'production' || 
                        _dirname.includes('dist') || 
