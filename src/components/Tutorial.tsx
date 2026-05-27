@@ -71,11 +71,28 @@ export default function Tutorial({ onComplete }: TutorialProps) {
     largeFonts: false,
   });
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+    }
+  }, []);
+
   const speakText = (text: string) => {
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'es-ES';
+      try {
+        const voices = window.speechSynthesis.getVoices();
+        const esVoice = voices.find(v => v.lang === 'es-ES' || v.lang === 'es_ES') || 
+                        voices.find(v => v.lang.startsWith('es-') || v.lang.startsWith('es_')) ||
+                        voices.find(v => v.lang.includes('es'));
+        if (esVoice) {
+          utterance.voice = esVoice;
+        }
+      } catch (err) {
+        console.error("Error setting speech synthesis voice:", err);
+      }
       window.speechSynthesis.speak(utterance);
     }
   };

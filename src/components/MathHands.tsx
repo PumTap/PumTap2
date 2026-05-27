@@ -99,6 +99,34 @@ export default function MathHands({ onComplete, isKidsMode }: MathHandsProps) {
   const [randomColors, setRandomColors] = useState([COLORS[0], COLORS[1]]);
   const [userAnswer, setUserAnswer] = useState<number | null>(null);
 
+  const speakText = (text: string) => {
+    try {
+      const profileStr = localStorage.getItem('magic_play_user_profile');
+      if (profileStr) {
+        const profile = JSON.parse(profileStr);
+        if (profile?.accessibility?.screenReader && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'es-ES';
+          try {
+            const voices = window.speechSynthesis.getVoices();
+            const esVoice = voices.find(v => v.lang === 'es-ES' || v.lang === 'es_ES') || 
+                            voices.find(v => v.lang.startsWith('es-') || v.lang.startsWith('es_')) ||
+                            voices.find(v => v.lang.includes('es'));
+            if (esVoice) {
+              utterance.voice = esVoice;
+            }
+          } catch (err) {
+            console.error(err);
+          }
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+    } catch (e) {
+      console.error("speakText error in MathHands:", e);
+    }
+  };
+
   const generateProblem = useCallback(() => {
     const n1 = Math.floor(Math.random() * 6); // 0-5
     const n2 = Math.floor(Math.random() * 6); // 0-5
@@ -125,10 +153,18 @@ export default function MathHands({ onComplete, isKidsMode }: MathHandsProps) {
     generateProblem();
   }, [generateProblem]);
 
+  useEffect(() => {
+    if (status === 'playing') {
+      const opWord = op === '+' ? "más" : "menos";
+      speakText(`¿Cuánto es? ${num1} ${opWord} ${num2}`);
+    }
+  }, [num1, num2, op, status]);
+
   const checkAnswer = (val: number) => {
     const correct = op === '+' ? num1 + num2 : num1 - num2;
     setUserAnswer(val);
     if (val === correct) {
+      speakText("¡Correcto! ¡Muy bien!");
       if (isKidsMode) {
         setStatus('correct');
         setTimeout(() => {
@@ -139,6 +175,7 @@ export default function MathHands({ onComplete, isKidsMode }: MathHandsProps) {
         onComplete?.();
       }
     } else {
+      speakText("Oh, inténtalo de nuevo");
       setStatus('wrong');
       setTimeout(() => setStatus('playing'), 1000);
     }

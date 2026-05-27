@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Palette, 
@@ -353,6 +353,62 @@ export default function ColoringGame({ onComplete, isKidsMode }: ColoringGamePro
   const [showTrophy, setShowTrophy] = useState(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+    }
+  }, []);
+
+  const speakText = (text: string) => {
+    try {
+      const profileStr = localStorage.getItem('magic_play_user_profile');
+      if (profileStr) {
+        const profile = JSON.parse(profileStr);
+        if (profile?.accessibility?.screenReader && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'es-ES';
+          try {
+            const voices = window.speechSynthesis.getVoices();
+            const esVoice = voices.find(v => v.lang === 'es-ES' || v.lang === 'es_ES') || 
+                            voices.find(v => v.lang.startsWith('es-') || v.lang.startsWith('es_')) ||
+                            voices.find(v => v.lang.includes('es'));
+            if (esVoice) {
+              utterance.voice = esVoice;
+            }
+          } catch (err) {
+            console.error(err);
+          }
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+    } catch (e) {
+      console.error("speakText error in ColoringGame:", e);
+    }
+  };
+
+  const getColorName = (hex: string): string => {
+    const names: Record<string, string> = {
+      '#ef4444': 'rojo',
+      '#f97316': 'naranja',
+      '#eab308': 'amarillo',
+      '#22c55e': 'verde',
+      '#06b6d4': 'turquesa',
+      '#3b82f6': 'azul',
+      '#a855f7': 'púrpura o violeta',
+      '#ec4899': 'rosa',
+      '#ffffff': 'blanco',
+      '#18181b': 'negro'
+    };
+    return names[hex.toLowerCase()] || 'color seleccionado';
+  };
+
+  useEffect(() => {
+    if (selectedDrawing) {
+      speakText(`Pinta por puntos. Vamos a pintar: ${selectedDrawing.name}`);
+    }
+  }, [selectedDrawing]);
+
   const initAudio = () => {
     if (!audioCtxRef.current) {
       audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -382,7 +438,12 @@ export default function ColoringGame({ onComplete, isKidsMode }: ColoringGamePro
   }, []);
 
   const handleDotClick = (dot: Dot) => {
-    if (dot.targetColor === currentColor && !coloredDots[dot.id]) {
+    if (coloredDots[dot.id]) {
+      speakText(`Esa zona ya está pintada de ${getColorName(coloredDots[dot.id])}`);
+      return;
+    }
+
+    if (dot.targetColor === currentColor) {
       playPaintSound();
       
       const nextColoredDots = { ...coloredDots, [dot.id]: currentColor };
@@ -393,15 +454,21 @@ export default function ColoringGame({ onComplete, isKidsMode }: ColoringGamePro
       );
       
       if (allColored) {
+        speakText(`¡Precioso! Completaste todo el dibujo de ${selectedDrawing.name}. ¡Qué bonito ha quedado!`);
         if (isKidsMode) {
           setTimeout(() => {
             reset();
-          }, 1500);
+          }, 2500);
         } else {
           setShowTrophy(true);
           onComplete?.();
         }
+      } else {
+        const remaining = selectedDrawing.dots.length - Object.keys(nextColoredDots).length;
+        speakText(`¡Color correcto! Faltan ${remaining} puntos por pintar.`);
       }
+    } else {
+      speakText(`Este círculo no es de color ${getColorName(currentColor)}. Busca el color ${getColorName(dot.targetColor)}.`);
     }
   };
 
@@ -436,7 +503,10 @@ export default function ColoringGame({ onComplete, isKidsMode }: ColoringGamePro
               key={`palette-color-${color}-${idx}`}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              onClick={() => setCurrentColor(color)}
+              onClick={() => {
+                setCurrentColor(color);
+                speakText(`Pincel con color ${getColorName(color)}`);
+              }}
               className={`w-9 h-9 sm:w-11 sm:h-11 flex-shrink-0 rounded-full border-4 transition-all shadow-xl ${currentColor === color ? 'border-white scale-110 shadow-white/20' : color === '#18181b' ? 'border-zinc-700' : 'border-white/10'}`}
               style={{ backgroundColor: color }}
             />
@@ -484,7 +554,12 @@ export default function ColoringGame({ onComplete, isKidsMode }: ColoringGamePro
           {DRAWINGS.map((drawing, dIdx) => (
             <button
               key={`drawing-select-${drawing.id}-${dIdx}`}
-              onClick={() => { setSelectedDrawing(drawing); setColoredDots({}); setShowTrophy(false); }}
+              onClick={() => {
+                setSelectedDrawing(drawing);
+                setColoredDots({});
+                setShowTrophy(false);
+                speakText(`Elegiste pintar la figura: ${drawing.name}`);
+              }}
               className={`p-2 sm:p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 min-w-[90px] sm:min-w-0 snap-center ${selectedDrawing.id === drawing.id ? 'bg-white border-white scale-105 shadow-xl' : 'bg-white/5 border-zinc-900 text-white/40 hover:bg-white/10'}`}
             >
               <div className="w-10 h-10 sm:w-16 sm:h-16 bg-zinc-950/20 rounded-xl flex items-center justify-center p-1.5 sm:p-2">

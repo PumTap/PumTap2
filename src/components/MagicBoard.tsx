@@ -297,6 +297,40 @@ export default function MagicBoard() {
   const [hue, setHue] = useState(0);
   const [eraserParticles, setEraserParticles] = useState<any[]>([]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+    }
+  }, []);
+
+  const speakText = (text: string) => {
+    try {
+      const profileStr = localStorage.getItem('magic_play_user_profile');
+      if (profileStr) {
+        const profile = JSON.parse(profileStr);
+        if (profile?.accessibility?.screenReader && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'es-ES';
+          try {
+            const voices = window.speechSynthesis.getVoices();
+            const esVoice = voices.find(v => v.lang === 'es-ES' || v.lang === 'es_ES') || 
+                            voices.find(v => v.lang.startsWith('es-') || v.lang.startsWith('es_')) ||
+                            voices.find(v => v.lang.includes('es'));
+            if (esVoice) {
+              utterance.voice = esVoice;
+            }
+          } catch (err) {
+            console.error(err);
+          }
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+    } catch (e) {
+      console.error("speakText error in magicboard:", e);
+    }
+  };
+
   const spawnEraserParticles = (x: number, y: number) => {
     const count = 3;
     const newParticles = [];
@@ -796,37 +830,37 @@ export default function MagicBoard() {
           className="bg-white/10 backdrop-blur-md p-1.5 sm:p-3 rounded-xl sm:rounded-3xl flex flex-wrap justify-center gap-1.5 sm:gap-4 items-center border border-white/20 shadow-2xl max-w-full overflow-x-auto scrollbar-hide pointer-events-auto"
         >
           <div className="flex gap-1 sm:gap-2 pr-1.5 sm:pr-4 border-r border-white/10">
-            <button onClick={undo} className="p-1.5 sm:p-3 bg-blue-500 rounded-lg sm:rounded-2xl hover:bg-blue-400 transition-colors" title="Deshacer">
+            <button onClick={() => { undo(); speakText("Deshacer línea"); }} className="p-1.5 sm:p-3 bg-blue-500 rounded-lg sm:rounded-2xl hover:bg-blue-400 transition-colors" title="Deshacer">
               <Undo2 size={18} className="sm:w-7 sm:h-7" />
             </button>
-            <button onClick={clearCanvas} className="p-1.5 sm:p-3 bg-red-500 rounded-lg sm:rounded-2xl hover:bg-red-400 transition-colors" title="Borrar Todo">
+            <button onClick={() => { clearCanvas(); speakText("Borrar toda la pizarra"); }} className="p-1.5 sm:p-3 bg-red-500 rounded-lg sm:rounded-2xl hover:bg-red-400 transition-colors" title="Borrar Todo">
               <Trash2 size={18} className="sm:w-7 sm:h-7" />
             </button>
             <button 
-              onClick={() => { setTool('eraser'); setIsRainbow(false); setIsMagic(false); }}
+              onClick={() => { setTool('eraser'); setIsRainbow(false); setIsMagic(false); speakText("Goma de borrar seleccionada"); }}
               className={`p-1.5 sm:p-3 rounded-lg sm:rounded-2xl transition-all ${tool === 'eraser' ? 'bg-pink-500 text-white scale-105 shadow-lg' : 'bg-white/10 text-white hover:bg-white/20'}`}
               title="Goma de Borrar"
             >
               <Eraser size={18} className="sm:w-7 sm:h-7" />
             </button>
-            <button onClick={() => setIsSoundOn(!isSoundOn)} className="p-1.5 sm:p-3 bg-yellow-600 rounded-lg sm:rounded-2xl hover:bg-yellow-500 transition-colors hidden sm:flex" title="Sonido">
+            <button onClick={() => { setIsSoundOn(!isSoundOn); speakText(!isSoundOn ? "Sonido activado" : "Sonido desactivado"); }} className="p-1.5 sm:p-3 bg-yellow-600 rounded-lg sm:rounded-2xl hover:bg-yellow-500 transition-colors hidden sm:flex" title="Sonido">
               {isSoundOn ? <Volume2 size={18} className="sm:w-7 sm:h-7" /> : <VolumeX size={18} className="sm:w-7 sm:h-7" />}
             </button>
-            <button onClick={downloadImage} className="p-1.5 sm:p-3 bg-green-600 rounded-lg sm:rounded-2xl hover:bg-green-500 transition-colors" title="Guardar">
+            <button onClick={() => { downloadImage(); speakText("Guardando tu dibujo en el dispositivo"); }} className="p-1.5 sm:p-3 bg-green-600 rounded-lg sm:rounded-2xl hover:bg-green-500 transition-colors" title="Guardar">
               <Download size={18} className="sm:w-7 sm:h-7" />
             </button>
           </div>
 
           <div className="flex gap-1 sm:gap-2 pr-1.5 sm:pr-4 border-r border-white/10">
             <button 
-              onClick={() => { setTool('brush'); setIsRainbow(false); setIsMagic(false); }}
+              onClick={() => { setTool('brush'); setIsRainbow(false); setIsMagic(false); speakText(`Pincel estándar seleccionado`); }}
               className={`p-1.5 sm:p-3 rounded-lg sm:rounded-2xl transition-all ${tool === 'brush' && !isRainbow && !isMagic ? 'bg-white text-zinc-900 scale-105 shadow-lg' : 'bg-white/10 text-white'}`}
               title="Pincel"
             >
               <Brush size={18} className="sm:w-7 sm:h-7" />
             </button>
             <button 
-              onClick={() => { setTool('brush'); setIsRainbow(false); setIsMagic(true); }}
+              onClick={() => { setTool('brush'); setIsRainbow(false); setIsMagic(true); speakText("Pincel de brillo mágico seleccionado"); }}
               className={`p-1.5 sm:p-3 rounded-lg sm:rounded-2xl transition-all ${isMagic ? 'bg-gradient-to-tr from-yellow-400 to-pink-500 scale-105 shadow-lg' : 'bg-white/10 text-white'}`}
               title="Pincel Mágico"
             >
@@ -838,7 +872,7 @@ export default function MagicBoard() {
             {(Object.entries(SIZES) as [keyof typeof SIZES, typeof SIZES.small][]).map(([key, config]) => (
               <button
                 key={`magic-size-${key}`}
-                onClick={() => setCurrentSize(key)}
+                onClick={() => { setCurrentSize(key); speakText(`Grosor de pincel: ${config.label}`); }}
                 className={`flex items-center justify-center p-1.5 sm:p-3 rounded-lg sm:rounded-2xl transition-all ${currentSize === key ? 'bg-white text-zinc-900 scale-105 shadow-lg' : 'bg-white/10 text-white'}`}
               >
                 <div className="rounded-full bg-current" style={{ width: config.iconSize / 3, height: config.iconSize / 3 }} />
@@ -857,7 +891,7 @@ export default function MagicBoard() {
           {COLORS_BASE.map((c) => (
             <button
               key={`magic-color-${c.hex}`}
-              onClick={() => { setCurrentColor(c.hex); setTool('brush'); setIsRainbow(false); setIsMagic(false); }}
+              onClick={() => { setCurrentColor(c.hex); setTool('brush'); setIsRainbow(false); setIsMagic(false); speakText(`Color de pincel: ${c.label}`); }}
               className={`w-6 h-6 min-[375px]:w-8 min-[375px]:h-8 sm:w-12 sm:h-12 rounded-full border border-white/20 sm:border-4 transition-all ${currentColor === c.hex && tool === 'brush' && !isRainbow && !isMagic ? 'border-white scale-110 shadow-xl ring-2 ring-white/50' : 'border-transparent'}`}
               style={{ backgroundColor: c.hex }}
               title={c.label}
@@ -873,6 +907,9 @@ export default function MagicBoard() {
                 setTool('brush');
                 setIsRainbow(false);
                 setIsMagic(false);
+                speakText("Color personalizado");
+              } else {
+                speakText("Abrir paleta para elegir más colores");
               }
               colorInputRef.current?.click();
             }}
@@ -896,7 +933,7 @@ export default function MagicBoard() {
             return (
               <button
                 key={`magic-stamp-${stamp.id}`}
-                onClick={() => { setSelectedStamp(stamp); setTool('stamp'); }}
+                onClick={() => { setSelectedStamp(stamp); setTool('stamp'); speakText(`Estampa de: ${stamp.label}`); }}
                 className={`w-7 h-7 min-[375px]:w-9 min-[375px]:h-9 sm:w-14 sm:h-14 rounded-lg sm:rounded-2xl flex items-center justify-center transition-all border ${tool === 'stamp' && selectedStamp.id === stamp.id ? 'bg-white/20 border-white scale-110 shadow-xl' : 'bg-white/10 border-transparent text-white hover:bg-white/20'}`}
                 title={stamp.label}
               >

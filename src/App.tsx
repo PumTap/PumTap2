@@ -437,11 +437,28 @@ export default function App() {
     return () => clearInterval(intervalId);
   }, [checkoutUrl, userProfile]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+    }
+  }, []);
+
   const speakText = (text: string) => {
     if (userProfile?.accessibility?.screenReader && window.speechSynthesis) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'es-ES';
+      try {
+        const voices = window.speechSynthesis.getVoices();
+        const esVoice = voices.find(v => v.lang === 'es-ES' || v.lang === 'es_ES') || 
+                        voices.find(v => v.lang.startsWith('es-') || v.lang.startsWith('es_')) ||
+                        voices.find(v => v.lang.includes('es'));
+        if (esVoice) {
+          utterance.voice = esVoice;
+        }
+      } catch (err) {
+        console.error("Error setting speech synthesis voice:", err);
+      }
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -891,7 +908,21 @@ export default function App() {
             return (
               <button 
                 key={game.id}
-                onClick={() => !isLocked && setActiveGame(game.id as any)}
+                onClick={() => {
+                  if (!isLocked) {
+                    setActiveGame(game.id as any);
+                    speakText("Iniciando de inmediato juego de " + game.label);
+                  } else {
+                    speakText("Controles bloqueados en modo infantil");
+                  }
+                }}
+                onMouseEnter={() => {
+                  if (isLocked) {
+                    speakText("Juego de " + game.label + ", bloqueado temporalmente.");
+                  } else {
+                    speakText("Juego de " + game.label);
+                  }
+                }}
                 disabled={isLocked}
                 className={`flex-shrink-0 flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg transition-all active:scale-95 ${
                   isCurrent 
@@ -913,13 +944,20 @@ export default function App() {
         </nav>
 
         <div className="flex items-center gap-1.5 sm:gap-3 ml-2">
-          <div className="flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-lg border border-white/5">
+          <div 
+            className="flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-lg border border-white/5"
+            onMouseEnter={() => speakText(`Tienes un acumulado de ${userProfile.points} puntos mágicos`)}
+          >
             <Coins className="text-yellow-500 w-3.5 h-3.5" />
             <span className="text-white font-black text-xs">{userProfile.points}</span>
           </div>
 
           <button 
-            onClick={toggleFullscreenOnly}
+            onClick={() => {
+              toggleFullscreenOnly();
+              speakText(!isFullscreen ? "Pantalla completa activada" : "Pantalla completa desactivada");
+            }}
+            onMouseEnter={() => speakText(isFullscreen ? "Apagar pantalla completa" : "Poner en pantalla completa")}
             className={`p-1.5 sm:p-2 rounded-lg flex items-center justify-center border transition-all ${
               isFullscreen 
                 ? 'bg-blue-500/20 border-blue-500/40 text-blue-400 hover:bg-blue-500/30 shadow-lg shadow-blue-500/10' 
@@ -931,7 +969,12 @@ export default function App() {
           </button>
 
           <button 
-            onClick={toggleLock}
+            onClick={() => {
+              const newLock = !isLocked;
+              toggleLock();
+              speakText(newLock ? "Modo infantil bloqueado, controles superiores desactivados." : "Controles desbloqueados");
+            }}
+            onMouseEnter={() => speakText(isLocked ? "Controles bloqueados. Haz clic para desbloquear el menú de selección" : "Bloquear juego. Desactiva los menús para juego continuo")}
             className={`p-1.5 sm:p-2 rounded-lg flex items-center justify-center border transition-all ${
               isLocked 
                 ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 hover:bg-amber-500/30 shadow-lg shadow-amber-500/10' 
@@ -1757,7 +1800,11 @@ export default function App() {
       {/* BOTTOM NAVIGATION BAR - APP SHORTCUTS */}
       <footer className="h-14 sm:h-16 bg-zinc-900/60 backdrop-blur-md border-t border-white/5 flex items-center justify-around px-2 sm:px-6 z-40 relative">
         <button
-          onClick={() => setActiveGame('home')}
+          onClick={() => {
+            setActiveGame('home');
+            speakText("Yendo a pantalla de inicio");
+          }}
+          onMouseEnter={() => speakText("Sección Inicio")}
           className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all font-comic active:scale-95 cursor-pointer ${
             activeGame === 'home' 
               ? 'text-yellow-400 font-black scale-105' 
@@ -1769,7 +1816,19 @@ export default function App() {
         </button>
 
         <button
-          onClick={() => setActiveGame('ranking')}
+          onClick={() => {
+            if (!isKidsMode && !isLocked) {
+              setActiveGame('ranking');
+              speakText("Abriendo tabla de ranking");
+            }
+          }}
+          onMouseEnter={() => {
+            if (isKidsMode || isLocked) {
+              speakText("Ranking bloqueado temporalmente");
+            } else {
+              speakText("Tabla de Clasificación y Ranking");
+            }
+          }}
           disabled={isKidsMode || isLocked}
           className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all font-comic ${
             isKidsMode || isLocked
@@ -1788,7 +1847,19 @@ export default function App() {
         </button>
 
         <button
-          onClick={() => setActiveGame('profile')}
+          onClick={() => {
+            if (!isKidsMode && !isLocked) {
+              setActiveGame('profile');
+              speakText("Abriendo mi perfil de jugador y accesibilidad");
+            }
+          }}
+          onMouseEnter={() => {
+            if (isKidsMode || isLocked) {
+              speakText("Perfil bloqueado temporalmente");
+            } else {
+              speakText("Mi perfil y ajustes de accesibilidad");
+            }
+          }}
           disabled={isKidsMode || isLocked}
           className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all font-comic ${
             isKidsMode || isLocked

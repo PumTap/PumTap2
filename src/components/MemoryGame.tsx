@@ -12,6 +12,48 @@ import SuccessOverlay from './SuccessOverlay';
 
 type Category = 'animals' | 'objects' | 'vehicles' | 'planets';
 
+const SPANISH_NAMES: Record<string, string> = {
+  // Animals
+  dog: 'Perro',
+  cat: 'Gato',
+  fish: 'Pez',
+  bird: 'Pájaro',
+  bug: 'Bicho',
+  rabbit: 'Conejo',
+  snail: 'Caracol',
+  turtle: 'Tortuga',
+  
+  // Objects
+  gift: 'Regalo',
+  key: 'Llave',
+  umbrella: 'Paraguas',
+  backpack: 'Mochila',
+  camera: 'Cámara',
+  bulb: 'Bombilla',
+  watch: 'Reloj',
+  magnet: 'Imán',
+
+  // Vehicles
+  car: 'Coche',
+  bike: 'Bicicleta',
+  truck: 'Camión',
+  ship: 'Barco',
+  plane: 'Avión',
+  rocket: 'Cohete espacial',
+  train: 'Tren',
+  bus: 'Autobús',
+
+  // Planets
+  sun: 'Sol',
+  moon: 'Luna',
+  earth: 'Tierra',
+  saturn: 'Planeta Saturno',
+  star: 'Estrella',
+  satellite: 'Satélite',
+  rocket_planet: 'Cohete espacial',
+  core: 'Átomo'
+};
+
 interface CardType {
   id: number;
   icon: React.ElementType;
@@ -99,8 +141,43 @@ export default function MemoryGame({ onComplete, isKidsMode }: MemoryGameProps) 
   const [isGameComplete, setIsGameComplete] = useState(false);
   const hasCalledOnComplete = useRef(false);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+    }
+  }, []);
+
+  const speakText = (text: string) => {
+    try {
+      const profileStr = localStorage.getItem('magic_play_user_profile');
+      if (profileStr) {
+        const profile = JSON.parse(profileStr);
+        if (profile?.accessibility?.screenReader && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'es-ES';
+          try {
+            const voices = window.speechSynthesis.getVoices();
+            const esVoice = voices.find(v => v.lang === 'es-ES' || v.lang === 'es_ES') || 
+                            voices.find(v => v.lang.startsWith('es-') || v.lang.startsWith('es_')) ||
+                            voices.find(v => v.lang.includes('es'));
+            if (esVoice) {
+              utterance.voice = esVoice;
+            }
+          } catch (err) {
+            console.error(err);
+          }
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+    } catch (e) {
+      console.error("speakText error in MemoryGame:", e);
+    }
+  };
+
   const initGame = useCallback((cat: Category) => {
     const config = CATEGORIES[cat];
+    speakText(`Iniciando juego de memoria con tema ${config.label}`);
     const gameIcons = [...config.icons];
     
     // Create pairs
@@ -230,6 +307,8 @@ export default function MemoryGame({ onComplete, isKidsMode }: MemoryGameProps) 
     // Play crisp homogeneous flip sound
     playSynthSound('flip');
 
+    const name = SPANISH_NAMES[card?.pairId || ''] || card?.pairId || 'carta';
+
     setFlippedIds(prev => [...prev, id]);
 
     if (flippedIds.length === 1) {
@@ -246,16 +325,20 @@ export default function MemoryGame({ onComplete, isKidsMode }: MemoryGameProps) 
         setFlippedIds([]);
         // Play success matching sound after a small delay so they don't overlap with flip
         setTimeout(() => playSynthSound('match'), 120);
+        speakText(`${name}. ¡Pareja encontrada!`);
       } else {
         // NO MATCH
         setDisabled(true);
         // Play fail sound after a small delay
         setTimeout(() => playSynthSound('fail'), 120);
+        speakText(`${name}. No coincide con ${SPANISH_NAMES[firstCard?.pairId || ''] || ''}.`);
         setTimeout(() => {
           setFlippedIds([]);
           setDisabled(false);
-        }, 1000);
+        }, 1100);
       }
+    } else {
+      speakText(name);
     }
   };
 

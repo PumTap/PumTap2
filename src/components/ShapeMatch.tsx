@@ -25,6 +25,15 @@ const SHAPE_ICONS = {
   heart: Heart,
 };
 
+const SHAPE_SPANISH: Record<string, string> = {
+  circle: 'círculo',
+  square: 'cuadrado',
+  triangle: 'triángulo',
+  star: 'estrella',
+  diamond: 'diamante',
+  heart: 'corazón'
+};
+
 type ShapeType = keyof typeof SHAPE_ICONS;
 
 const COLORS = [
@@ -56,6 +65,40 @@ export default function ShapeMatch({ onComplete, isKidsMode }: ShapeMatchProps) 
   const [showSuccess, setShowSuccess] = useState(false);
   const [showLevelUp, setShowLevelUp] = useState(false);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+    }
+  }, []);
+
+  const speakText = (text: string) => {
+    try {
+      const profileStr = localStorage.getItem('magic_play_user_profile');
+      if (profileStr) {
+        const profile = JSON.parse(profileStr);
+        if (profile?.accessibility?.screenReader && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'es-ES';
+          try {
+            const voices = window.speechSynthesis.getVoices();
+            const esVoice = voices.find(v => v.lang === 'es-ES' || v.lang === 'es_ES') || 
+                            voices.find(v => v.lang.startsWith('es-') || v.lang.startsWith('es_')) ||
+                            voices.find(v => v.lang.includes('es'));
+            if (esVoice) {
+              utterance.voice = esVoice;
+            }
+          } catch (err) {
+            console.error(err);
+          }
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+    } catch (e) {
+      console.error("speakText error in ShapeMatch:", e);
+    }
+  };
+
   const initGame = useCallback(() => {
     const selectedShapes: ShapeItem[] = [];
     const availableTypes = Object.keys(SHAPE_ICONS) as ShapeType[];
@@ -81,6 +124,9 @@ export default function ShapeMatch({ onComplete, isKidsMode }: ShapeMatchProps) 
     setSockets([...selectedShapes].sort(() => Math.random() - 0.5));
     setShowSuccess(false);
     setShowLevelUp(false);
+    
+    // Describe task
+    speakText("Ajuste mágico. Arrastra las figuras brillantes a sus siluetas correspondientes.");
   }, []);
 
   useEffect(() => {
@@ -139,6 +185,7 @@ export default function ShapeMatch({ onComplete, isKidsMode }: ShapeMatchProps) 
       playMatchSound();
       setShapes(prev => prev.map(s => s.id === shapeId ? { ...s, isMatched: true } : s));
       setSockets(prev => prev.map(s => s.id === socketId ? { ...s, isMatched: true } : s));
+      speakText(`¡Excelente! Encajaste el ${SHAPE_SPANISH[shape.type] || shape.type}`);
       
       // Check if level is complete
       const updatedShapes = shapes.map(s => s.id === shapeId ? { ...s, isMatched: true } : s);
@@ -147,6 +194,9 @@ export default function ShapeMatch({ onComplete, isKidsMode }: ShapeMatchProps) 
       }
     } else {
       playErrorSound();
+      if (shape) {
+        speakText(`Esa silueta no corresponde al ${SHAPE_SPANISH[shape.type] || shape.type}. Intenta en otra.`);
+      }
     }
   };
 
@@ -248,6 +298,7 @@ export default function ShapeMatch({ onComplete, isKidsMode }: ShapeMatchProps) 
                     key={shape.id}
                     shape={shape} 
                     onMatch={(socketId) => handleMatch(shape.id, socketId)}
+                    speakText={speakText}
                   />
                 )}
               </AnimatePresence>
@@ -280,6 +331,7 @@ interface DraggableShapeProps {
   key?: string | number;
   shape: ShapeItem;
   onMatch: (socketId: string) => void;
+  speakText: (text: string) => void;
 }
 
 const SHAPE_PATHS = {
@@ -329,7 +381,7 @@ function ShapeContainer({ type, color, border, isSocket, isMatched, children }: 
   );
 }
 
-function DraggableShape({ shape, onMatch }: DraggableShapeProps) {
+function DraggableShape({ shape, onMatch, speakText }: DraggableShapeProps) {
   const [isError, setIsError] = useState(false);
 
   return (
@@ -341,6 +393,9 @@ function DraggableShape({ shape, onMatch }: DraggableShapeProps) {
       whileDrag={{ scale: 1.1, zIndex: 100, rotate: 2 }}
       whileHover={{ scale: 1.05, cursor: 'grab' }}
       whileTap={{ cursor: 'grabbing' }}
+      onDragStart={() => {
+        speakText(`Llevando ${SHAPE_SPANISH[shape.type] || shape.type}`);
+      }}
       onDragEnd={(e, info) => {
         // Detect if dropped over a socket
         const x = info.point.x;

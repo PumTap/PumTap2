@@ -139,6 +139,46 @@ export default function ShapeDrawing({ onComplete }: { onComplete?: () => void }
   
   const currentShape = SHAPES[currentShapeIndex];
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+    }
+  }, []);
+
+  const speakText = (text: string) => {
+    try {
+      const profileStr = localStorage.getItem('magic_play_user_profile');
+      if (profileStr) {
+        const profile = JSON.parse(profileStr);
+        if (profile?.accessibility?.screenReader && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'es-ES';
+          try {
+            const voices = window.speechSynthesis.getVoices();
+            const esVoice = voices.find(v => v.lang === 'es-ES' || v.lang === 'es_ES') || 
+                            voices.find(v => v.lang.startsWith('es-') || v.lang.startsWith('es_')) ||
+                            voices.find(v => v.lang.includes('es'));
+            if (esVoice) {
+              utterance.voice = esVoice;
+            }
+          } catch (err) {
+            console.error(err);
+          }
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+    } catch (e) {
+      console.error("speakText error in ShapeDrawing:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (currentShape) {
+      speakText(`Dibujo mágico. Une los puntos para dibujar: ${currentShape.name}`);
+    }
+  }, [currentShapeIndex]);
+
   const clearCanvas = useCallback(() => {
     setTracedPoints([]);
     setIsSuccess(false);
@@ -174,6 +214,7 @@ export default function ShapeDrawing({ onComplete }: { onComplete?: () => void }
       setIsSuccess(true);
       setShowParticle(true);
       playSuccessSound();
+      speakText(`¡Excelente! Has dibujado el ${currentShape.name}`);
       
       // Award 25 points only if this was the last shape
       if (currentShapeIndex === SHAPES.length - 1) {
